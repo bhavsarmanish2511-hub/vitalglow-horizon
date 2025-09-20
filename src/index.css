@@ -150,6 +150,10 @@
   }
 
   /* Animations */
+  .drop-shadow-glow {
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+  
   .pulse-glow {
     animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
