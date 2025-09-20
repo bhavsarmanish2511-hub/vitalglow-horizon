@@ -7,6 +7,7 @@ import { VideoMonitoring } from '@/components/VideoMonitoring';
 import { TelehealthSupport } from '@/components/TelehealthSupport';
 import { AlertsActions } from '@/components/AlertsActions';
 import { BottomNavigation } from '@/components/BottomNavigation';
+import { IPhoneMockup } from '@/components/IPhoneMockup';
 import { Patient, Vital, Medication, MoodEntry, Camera, Appointment, Alert } from '@/types/patient';
 
 const Index = () => {
@@ -193,43 +194,66 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
-      {/* Header */}
-      <div className="glass-card rounded-b-2xl p-4 mb-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-xs text-muted-foreground">
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                month: 'short', 
-                day: 'numeric' 
-              })}
-            </p>
-            <p className="text-3xl font-bold">
-              {new Date().toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-8">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-secondary/20 blur-3xl" />
+      </div>
+      
+      {/* Title */}
+      <div className="absolute top-8 left-8">
+        <h1 className="text-3xl font-bold text-white mb-2">VitalGlow Horizon</h1>
+        <p className="text-gray-400">AI-Powered Patient Dashboard 2035</p>
+      </div>
+      
+      {/* iPhone Mockup with App */}
+      <IPhoneMockup>
+        <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
+          {/* Header */}
+          <div className="glass-card rounded-b-2xl p-4 mb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {new Date().toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </p>
+                <p className="text-3xl font-bold">
+                  {new Date().toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
+                <div className="w-3 h-3 rounded-full bg-primary" />
+                <div className="w-3 h-3 rounded-full bg-secondary" />
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
-            <div className="w-3 h-3 rounded-full bg-primary" />
-            <div className="w-3 h-3 rounded-full bg-secondary" />
+
+          {/* Main Content */}
+          <div className="px-4 pb-24 space-y-4">
+            {renderContent()}
           </div>
+
+          {/* Bottom Navigation */}
+          <BottomNavigation 
+            activeSection={activeSection} 
+            onSectionChange={setActiveSection} 
+          />
         </div>
+      </IPhoneMockup>
+      
+      {/* Device Info */}
+      <div className="absolute bottom-8 right-8 text-right">
+        <p className="text-gray-400 text-sm">iPhone 15 Pro Max</p>
+        <p className="text-gray-500 text-xs">iOS 19.0 • 2035 Edition</p>
       </div>
-
-      {/* Main Content */}
-      <div className="px-4 pb-24 space-y-4">
-        {renderContent()}
-      </div>
-
-      {/* Bottom Navigation */}
-      <BottomNavigation 
-        activeSection={activeSection} 
-        onSectionChange={setActiveSection} 
-      />
     </div>
   );
 };
