@@ -162,12 +162,7 @@ const Index = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'home':
-        return (
-          <>
-            <PatientSummaryCard patient={patient} />
-            <AlertsActions alerts={alerts} />
-          </>
-        );
+        return <PatientSummaryCard patient={patient} />;
       case 'vitals':
         return <VitalsOverview vitals={vitals} />;
       case 'meds':
@@ -188,6 +183,8 @@ const Index = () => {
             onScheduleAppointment={handleScheduleAppointment} 
           />
         );
+      case 'alerts':
+        return <AlertsActions alerts={alerts} />;
       default:
         return <PatientSummaryCard patient={patient} />;
     }

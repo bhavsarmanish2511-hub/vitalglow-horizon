@@ -12,20 +12,20 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onSectionChange 
 }) => {
   const navItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'vitals', icon: Activity, label: 'Vitals' },
-    { id: 'meds', icon: Pill, label: 'Meds' },
-    { id: 'mental', icon: Brain, label: 'Mental' },
-    { id: 'video', icon: Video, label: 'Monitor' },
-    { id: 'telehealth', icon: Calendar, label: 'Health' },
+    { id: 'home', icon: Home, label: '🏠', tooltip: 'Home' },
+    { id: 'vitals', icon: Activity, label: '❤️', tooltip: 'Vitals' },
+    { id: 'meds', icon: Pill, label: '💊', tooltip: 'Meds' },
+    { id: 'mental', icon: Brain, label: '🙂', tooltip: 'Mental' },
+    { id: 'video', icon: Video, label: '📹', tooltip: 'Monitor' },
+    { id: 'telehealth', icon: Calendar, label: '📅', tooltip: 'Health' },
+    { id: 'alerts', icon: Activity, label: '🔔', tooltip: 'Alerts' },
   ];
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50">
+    <div className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-primary/20">
       <div className="pb-6 pt-2">
-        <div className="flex justify-around px-2">
+        <div className="flex justify-around px-1">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const isActive = activeSection === item.id;
             
             return (
@@ -33,25 +33,39 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                 key={item.id}
                 onClick={() => onSectionChange(item.id)}
                 className={cn(
-                  "flex-1 py-2 px-1 rounded-xl transition-all duration-300",
-                  "flex flex-col items-center gap-1",
+                  "relative flex-1 py-2 px-1 rounded-2xl transition-all duration-500",
+                  "flex flex-col items-center gap-0.5 group",
                   isActive 
-                    ? "bg-primary/20 scale-105" 
-                    : "hover:bg-white/5"
+                    ? "scale-110" 
+                    : "hover:scale-105 active:scale-95"
                 )}
               >
-                <Icon className={cn(
-                  "w-5 h-5 transition-all duration-300",
-                  isActive ? "text-primary drop-shadow-glow" : "text-muted-foreground"
-                )} />
-                <span className={cn(
-                  "text-[10px] transition-all duration-300",
-                  isActive ? "text-primary font-semibold" : "text-muted-foreground"
+                {/* Glow effect for active item */}
+                {isActive && (
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-primary/30 via-primary/20 to-transparent blur-md animate-pulse" />
+                )}
+                
+                {/* Icon with emoji */}
+                <div className={cn(
+                  "relative text-lg transition-all duration-300",
+                  isActive && "animate-bounce-subtle"
                 )}>
                   {item.label}
+                </div>
+                
+                {/* Text label */}
+                <span className={cn(
+                  "text-[9px] font-medium transition-all duration-300",
+                  isActive 
+                    ? "text-primary drop-shadow-glow" 
+                    : "text-muted-foreground opacity-60"
+                )}>
+                  {item.tooltip}
                 </span>
+                
+                {/* Active indicator dot */}
                 {isActive && (
-                  <div className="absolute -bottom-1 w-1 h-1 rounded-full bg-primary animate-pulse" />
+                  <div className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-primary shadow-glow animate-pulse" />
                 )}
               </button>
             );

@@ -154,8 +154,25 @@
     filter: drop-shadow(0 0 8px currentColor);
   }
   
+  .shadow-glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+  }
+  
   .pulse-glow {
     animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes bounce-subtle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+  
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
   }
 
   @keyframes pulse-glow {
