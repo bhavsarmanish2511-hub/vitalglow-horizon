@@ -1,84 +1,112 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Futuristic 2035 Design System */
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
 
 @layer base {
   :root {
-    /* Core Colors - Deep Space Theme */
-    --background: 220 30% 6%;
-    --foreground: 180 50% 95%;
+    --background: 210 17% 98%;
+    --foreground: 215 25% 15%;
 
-    /* Glassmorphic Cards */
-    --card: 220 30% 10%;
-    --card-foreground: 180 50% 95%;
-    --card-glass: 220 30% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
 
-    --popover: 220 30% 8%;
-    --popover-foreground: 180 50% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
 
-    /* Neon Accents */
-    --primary: 180 80% 60%;
-    --primary-foreground: 220 30% 10%;
-    --primary-glow: 180 100% 70%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 280 70% 65%;
-    --secondary-foreground: 220 30% 10%;
-    --secondary-glow: 280 100% 75%;
+    --secondary: 210 17% 95%;
+    --secondary-foreground: 215 25% 15%;
 
-    --muted: 220 20% 25%;
-    --muted-foreground: 180 20% 70%;
+    --muted: 210 17% 95%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 160 70% 55%;
-    --accent-foreground: 220 30% 10%;
-    --accent-glow: 160 100% 65%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Status Colors */
-    --destructive: 0 80% 55%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-glow: 0 100% 65%;
 
-    --success: 140 70% 55%;
-    --success-foreground: 220 30% 10%;
-    --success-glow: 140 100% 65%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --warning: 45 90% 55%;
-    --warning-foreground: 220 30% 10%;
-    --warning-glow: 45 100% 65%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    /* Borders & Inputs */
-    --border: 220 20% 18%;
-    --input: 220 25% 14%;
-    --ring: 180 80% 60%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
 
-    /* Corner Radius */
-    --radius: 1rem;
+    --radius: 0.5rem;
 
-    /* Glass Effects */
-    --glass-blur: 12px;
-    --glass-opacity: 0.15;
-    --glass-border-opacity: 0.25;
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 70%));
+    --gradient-subtle: linear-gradient(180deg, hsl(210 17% 98%), hsl(0 0% 100%));
+    
+    --shadow-sm: 0 1px 2px 0 hsl(215 25% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(215 25% 15% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(215 25% 15% / 0.1);
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(180 80% 60%), hsl(280 70% 65%));
-    --gradient-secondary: linear-gradient(135deg, hsl(280 70% 65%), hsl(160 70% 55%));
-    --gradient-health: linear-gradient(135deg, hsl(140 70% 55%), hsl(180 80% 60%));
-    --gradient-alert: linear-gradient(135deg, hsl(0 80% 55%), hsl(45 90% 55%));
-    --gradient-glass: linear-gradient(135deg, hsl(220 30% 15% / 0.6), hsl(220 30% 10% / 0.3));
+    --sidebar-background: 215 25% 15%;
+    --sidebar-foreground: 210 17% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 20%;
+    --sidebar-accent-foreground: 210 17% 98%;
+    --sidebar-border: 215 25% 20%;
+    --sidebar-ring: 217 91% 60%;
+  }
 
-    /* Shadows & Glows */
-    --shadow-neon-primary: 0 0 40px hsl(180 100% 70% / 0.5);
-    --shadow-neon-secondary: 0 0 40px hsl(280 100% 75% / 0.5);
-    --shadow-neon-accent: 0 0 40px hsl(160 100% 65% / 0.5);
-    --shadow-glass: 0 8px 32px hsl(220 30% 5% / 0.8);
-    --shadow-inner-glow: inset 0 0 20px hsl(180 80% 60% / 0.1);
+  .dark {
+    --background: 215 25% 10%;
+    --foreground: 210 17% 98%;
 
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --card: 215 25% 12%;
+    --card-foreground: 210 17% 98%;
+
+    --popover: 215 25% 12%;
+    --popover-foreground: 210 17% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 25% 18%;
+    --secondary-foreground: 210 17% 98%;
+
+    --muted: 215 25% 18%;
+    --muted-foreground: 215 16% 65%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 215 25% 20%;
+    --input: 215 25% 20%;
+    --ring: 217 91% 60%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 70%));
+    --gradient-subtle: linear-gradient(180deg, hsl(215 25% 10%), hsl(215 25% 12%));
+
+    --sidebar-background: 215 25% 8%;
+    --sidebar-foreground: 210 17% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 25% 15%;
+    --sidebar-accent-foreground: 210 17% 98%;
+    --sidebar-border: 215 25% 15%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -89,143 +117,5 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Orbitron', sans-serif;
-  }
-}
-
-/* Glass Components */
-@layer components {
-  .glass-card {
-    @apply relative overflow-hidden rounded-2xl;
-    background: hsl(220 30% 15% / var(--glass-opacity));
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid hsl(180 80% 60% / var(--glass-border-opacity));
-    box-shadow: var(--shadow-glass), var(--shadow-inner-glow);
-  }
-
-  .glass-button {
-    @apply relative overflow-hidden rounded-xl px-6 py-3 font-medium transition-all duration-300;
-    background: hsl(220 30% 15% / 0.3);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid hsl(180 80% 60% / 0.3);
-  }
-
-  .glass-button:hover {
-    background: hsl(220 30% 15% / 0.5);
-    border-color: hsl(180 80% 60% / 0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px hsl(180 100% 70% / 0.3);
-  }
-
-  .glow-text {
-    text-shadow: 0 0 20px currentColor;
-  }
-
-  .neon-border {
-    position: relative;
-  }
-
-  .neon-border::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: var(--gradient-primary);
-    border-radius: inherit;
-    opacity: 0;
-    transition: opacity 0.3s;
-    z-index: -1;
-    filter: blur(4px);
-  }
-
-  .neon-border:hover::before {
-    opacity: 1;
-  }
-
-  /* Animations */
-  .drop-shadow-glow {
-    filter: drop-shadow(0 0 8px currentColor);
-  }
-  
-  .shadow-glow {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.5);
-  }
-  
-  .pulse-glow {
-    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes bounce-subtle {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-3px);
-    }
-  }
-  
-  .animate-bounce-subtle {
-    animation: bounce-subtle 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% {
-      opacity: 1;
-      box-shadow: 0 0 20px hsl(180 100% 70% / 0.5);
-    }
-    50% {
-      opacity: 0.8;
-      box-shadow: 0 0 40px hsl(180 100% 70% / 0.8);
-    }
-  }
-
-  .float-animation {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-
-  .slide-up {
-    animation: slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  @keyframes slide-up {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .fade-in {
-    animation: fade-in 0.5s ease-out;
-  }
-
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
   }
 }
