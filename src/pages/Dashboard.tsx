@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Clock, FileText, AlertCircle, MessageSquare, CheckCircle } from "lucide-react";
 import { TicketDetailsModal } from "@/components/tickets/TicketDetailsModal";
 import { IncidentDetailsModal } from "@/components/incidents/IncidentDetailsModal";
@@ -97,6 +98,16 @@ const Dashboard = () => {
   // Separate tickets and incidents by status - ONLY from context (real-time from chat)
   const openTickets = tickets.filter(t => t.status !== "resolved" && t.status !== "closed" && t.status !== "completed");
   const openIncidentsData = incidents.filter(i => i.status !== "resolved" && i.status !== "closed");
+  
+  // Closed tickets and incidents for Past Ticket History
+  const closedTickets = tickets.filter(t => t.status === "resolved" || t.status === "closed" || t.status === "completed");
+  const closedIncidents = incidents.filter(i => i.status === "resolved" || i.status === "closed");
+  
+  // Combine closed items with type information
+  const pastTicketHistory = [
+    ...closedTickets.map(t => ({ ...t, type: "Service Request" as const })),
+    ...closedIncidents.map(i => ({ ...i, type: "Incident" as const }))
+  ].sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime());
 
   const quickActions = [
     { label: "Access Payroll", prompt: "I need to access my payroll information" },
@@ -127,17 +138,16 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {quickActions.map((action, index) => (
               <Button
-                key={index}
-                variant="outline"
-                className="h-auto py-4 flex flex-col items-start gap-2 hover:bg-primary/10 hover:border-primary transition-all"
-                onClick={() => {
-                  // This will be handled by the chatbot widget
-                  window.dispatchEvent(new CustomEvent('chatbot-prompt', { detail: action.prompt }));
-                }}
-              >
-                <span className="font-medium text-sm">{action.label}</span>
-                <span className="text-xs text-muted-foreground text-left">{action.prompt}</span>
-              </Button>
+              key={index}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-start gap-2 hover:bg-primary/10 hover:border-primary transition-all text-foreground" // <-- Add text-foreground here
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('chatbot-prompt', { detail: action.prompt }));
+              }}
+            >
+              <span className="font-medium text-sm text-foreground">{action.label}</span> {/* <-- Add text-foreground */}
+              <span className="text-xs text-muted-foreground text-left">{action.prompt}</span>
+            </Button>
             ))}
           </div>
         </CardContent>
@@ -267,6 +277,98 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Past Ticket History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-success" />
+            Past Ticket History ({pastTicketHistory.length})
+          </CardTitle>
+          <CardDescription>
+            All closed service requests and incidents
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {pastTicketHistory.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <CheckCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No closed tickets yet</p>
+              <p className="text-sm mt-1">Resolved tickets will appear here</p>
+            </div>
+          ) : (
+            <Accordion type="single" collapsible className="w-full">
+              {pastTicketHistory.map((item) => (
+                <AccordionItem key={item.id} value={item.id} className="border border-border rounded-lg mb-3 px-4 bg-success/5">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-start justify-between w-full pr-4">
+                      <div className="flex flex-col items-start gap-2 text-left">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline" className="font-mono text-xs">{item.id}</Badge>
+                          <Badge variant="secondary" className="text-xs">{item.type}</Badge>
+                          <Badge className="bg-success/10 text-success">
+                            {item.status.replace("-", " ")}
+                          </Badge>
+                          <Badge className={item.priority === "high" || item.priority === "critical" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}>
+                            {item.priority}
+                          </Badge>
+                        </div>
+                        <h3 className="font-semibold text-foreground">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{item.description}</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <div className="space-y-3">
+                      <div className="text-sm text-muted-foreground">
+                        <strong className="text-foreground">Description:</strong>
+                        <p className="mt-1">{item.description}</p>
+                      </div>
+                      
+                      <div className="text-xs text-success bg-success/10 rounded p-3">
+                        <strong>Resolution:</strong> Ticket successfully resolved and closed by {item.assignee}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Created:</span>
+                          <p className="font-medium">{item.created}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Closed:</span>
+                          <p className="font-medium">{item.updated}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Category:</span>
+                          <p className="font-medium">{item.category}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Assignee:</span>
+                          <p className="font-medium">{item.assignee}</p>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          if (item.type === "Service Request") {
+                            setSelectedTicket(item);
+                          } else {
+                            setSelectedIncident(item);
+                          }
+                        }}
+                      >
+                        View Full Details
+                      </Button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Modals */}
       {selectedTicket && (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MetricCard } from '@/components/support/MetricCard';
 import { TicketDetailView } from '@/components/support/TicketDetailView';
 import { mockTickets, Ticket } from '@/data/mockTickets';
@@ -12,11 +13,13 @@ import {
   Star, 
   TrendingUp, 
   Target,
-  AlertCircle
+  AlertCircle,
+  Filter
 } from 'lucide-react';
 
 export default function SupportDashboard() {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { incidents } = useTickets();
 
   const metrics = [
@@ -37,6 +40,11 @@ export default function SupportDashboard() {
       createdBy: 'james@fincompany.com' // Business user incidents
     }))
   ];
+
+  // Filter incidents based on selected status
+  const filteredIncidents = statusFilter === "all" 
+    ? allIncidents 
+    : allIncidents.filter(incident => incident.status === statusFilter);
 
   const handleTicketClick = (ticket: any) => {
     setSelectedTicket(ticket);
@@ -110,8 +118,31 @@ export default function SupportDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Status Filter */}
+          <div className="mb-4 flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="escalated">Escalated</SelectItem>
+                <SelectItem value="waiting-for-user">Waiting for User</SelectItem>
+                <SelectItem value="pending-approval">Pending Approval</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">
+              Showing {filteredIncidents.length} of {allIncidents.length} incidents
+            </span>
+          </div>
+
           <div className="space-y-3">
-            {allIncidents.map((ticket) => (
+            {filteredIncidents.map((ticket) => (
               <div
                 key={ticket.id}
                 className={`border border-border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${

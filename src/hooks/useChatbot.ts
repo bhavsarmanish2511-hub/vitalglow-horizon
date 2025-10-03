@@ -114,7 +114,7 @@ export function useChatbot() {
         description: content,
         status: "open",
         priority: isSensitive ? "high" : "medium",
-        assignee: isPayrollRequest ? "Finance Team" : "IT Support",
+        assignee: isPayrollRequest ? "Support Engineer (martha@intelletica.com)" : "IT Support",
         created: now,
         updated: now,
         category: isPayrollRequest ? "Payroll" : "Technical",
