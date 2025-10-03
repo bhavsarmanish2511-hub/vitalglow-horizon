@@ -4,18 +4,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Shield } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState("james@fincompany.com");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 1500);
+    
+    const success = await login(email, password);
+    
+    if (success) {
+      // Route based on email
+      if (email === 'james@fincompany.com') {
+        navigate("/dashboard");
+      } else if (email === 'martha@intelletica.com') {
+        navigate("/support-dashboard");
+      }
+    } else {
+      toast({
+        title: "Login Failed",
+        description: "Invalid credentials. Use james@fincompany.com or martha@intelletica.com",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,10 +80,17 @@ const Login = () => {
               <Input
                 id="password"
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                defaultValue="••••••••"
                 required
               />
+            </div>
+            
+            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
+              <p className="font-medium mb-1">Demo Credentials:</p>
+              <p>Business User: james@fincompany.com</p>
+              <p>Support Engineer: martha@intelletica.com</p>
             </div>
 
             <Button

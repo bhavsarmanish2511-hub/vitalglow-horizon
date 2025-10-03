@@ -1,4 +1,4 @@
-import { Bell, User, Settings } from "lucide-react";
+import { User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,9 +10,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { NotificationPanel } from "@/components/support/NotificationPanel";
+import { useState } from "react";
 
 export function DashboardHeader() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   return (
     <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
@@ -21,20 +26,25 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive" />
-        </Button>
+        {user?.role === 'support' && (
+          <NotificationPanel onNotificationClick={(ticketId) => {
+            setSelectedTicketId(ticketId);
+            // This will be handled by the support dashboard
+            window.dispatchEvent(new CustomEvent('ticket-selected', { detail: ticketId }));
+          }} />
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground">JD</AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {user?.name.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
               </Avatar>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">James</p>
-                <p className="text-xs text-muted-foreground">james@fincompany.com</p>
+                <p className="text-sm font-medium">{user?.name || 'User'}</p>
+                <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -50,7 +60,10 @@ export function DashboardHeader() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/")}>
+            <DropdownMenuItem onClick={() => {
+              logout();
+              navigate("/login");
+            }}>
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
