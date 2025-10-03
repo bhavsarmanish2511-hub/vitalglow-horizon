@@ -13,7 +13,7 @@ export interface Message {
 const sensitiveKeywords = [
   "payroll", "pay slip", "salary", "account number", "ssn", 
   "social security", "bank account", "credit card", "password", 
-  "confidential", "sensitive"
+  "confidential", "sensitive, payslip"
 ];
 
 const isSensitiveRequest = (message: string): boolean => {

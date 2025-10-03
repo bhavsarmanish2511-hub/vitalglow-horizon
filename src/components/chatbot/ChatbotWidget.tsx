@@ -95,7 +95,7 @@ export function ChatbotWidget() {
                   {message.type === "report" && message.data && (
                     <ReportCard data={message.data} />
                   )}
-                  {message.type === "ticket" && message.data && (
+                  {/* {message.type === "ticket" && message.data && (
                     <>
                       <TicketPanel data={message.data} />
                       {message.ticketId && (
@@ -110,8 +110,8 @@ export function ChatbotWidget() {
                         </Button>
                       )}
                     </>
-                  )}
-                  {message.type === "incident" && message.data && (
+                  )} */}
+                  {/* {message.type === "incident" && message.data && (
                     <>
                       <IncidentTimeline data={message.data} />
                       {message.ticketId && (
@@ -126,7 +126,7 @@ export function ChatbotWidget() {
                         </Button>
                       )}
                     </>
-                  )}
+                  )} */}
                 </div>
               ))}
               {isTyping && (
