@@ -47,8 +47,8 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 flex flex-col gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3 mb-2">
             <AlertCircle className="h-6 w-6 text-destructive" />
             <DialogTitle className="text-2xl">{ticket.title}</DialogTitle>
@@ -81,7 +81,7 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 px-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
           <div className="space-y-6 mt-4">
             {/* Description */}
             <div>
@@ -276,7 +276,7 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
           </div>
         </ScrollArea>
 
-        <div className="flex gap-3 pt-4 border-t mt-4">
+        <div className="flex gap-3 px-6 py-4 border-t mt-0 bg-background">
           <Button variant="outline" className="flex-1">
             Add Update
           </Button>
