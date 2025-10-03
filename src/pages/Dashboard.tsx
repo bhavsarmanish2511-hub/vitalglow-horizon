@@ -94,10 +94,9 @@ const Dashboard = () => {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [selectedIncident, setSelectedIncident] = useState<any>(null);
   
-  // Separate tickets and incidents by status
-  const openTickets = tickets.filter(t => t.status !== "resolved" && t.status !== "closed");
+  // Separate tickets and incidents by status - ONLY from context (real-time from chat)
+  const openTickets = tickets.filter(t => t.status !== "resolved" && t.status !== "closed" && t.status !== "completed");
   const openIncidentsData = incidents.filter(i => i.status !== "resolved" && i.status !== "closed");
-  const pastIncidentsData = incidents.filter(i => i.status === "resolved" || i.status === "closed");
 
   const quickActions = [
     { label: "Access Payroll", prompt: "I need to access my payroll information" },
@@ -144,238 +143,130 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Open Service Requests - from chat + mock data */}
+      {/* Open Service Requests - Only from chat (real-time) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Open Service Requests ({openTickets.length + openServiceRequests.length})
+            Open Service Requests ({openTickets.length})
           </CardTitle>
           <CardDescription>
-            Tickets created via chat and existing service requests
+            Service requests created via AI Assistant
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {/* Tickets from chat */}
-            {openTickets.map((ticket) => (
-              <div
-                key={ticket.id}
-                className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-primary/5"
-                onClick={() => setSelectedTicket(ticket)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono text-xs">{ticket.id}</Badge>
-                    <Badge className="bg-success/10 text-success">
-                      {ticket.status.replace("-", " ")}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">From Chat</Badge>
-                  </div>
-                  <Badge className={ticket.priority === "high" || ticket.priority === "critical" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}>
-                    {ticket.priority}
-                  </Badge>
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">{ticket.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{ticket.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Updated: {ticket.updated}
-                  </span>
-                  <span>Assignee: {ticket.assignee}</span>
-                </div>
-              </div>
-            ))}
-            
-            {/* Mock existing service requests */}
-            {openServiceRequests.map((sr) => (
-              <div
-                key={sr.id}
-                className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelectedTicket(sr)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono text-xs">{sr.id}</Badge>
-                    <Badge className={sr.status === "resolved" ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}>
-                      {sr.status.replace("-", " ")}
+          {openTickets.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No open service requests</p>
+              <p className="text-sm mt-1">Use the AI Assistant to create new requests</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {openTickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-primary/5"
+                  onClick={() => setSelectedTicket(ticket)}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="font-mono text-xs hover:bg-primary/10 transition-colors">{ticket.id}</Badge>
+                      <Badge className={
+                        ticket.status === "resolved" || ticket.status === "completed"
+                          ? "bg-success/10 text-success"
+                          : ticket.status === "pending"
+                          ? "bg-warning/10 text-warning"
+                          : "bg-primary/10 text-primary"
+                      }>
+                        {ticket.status.replace("-", " ")}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">AI Created</Badge>
+                    </div>
+                    <Badge className={ticket.priority === "high" || ticket.priority === "critical" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}>
+                      {ticket.priority}
                     </Badge>
                   </div>
-                  <Badge className={sr.priority === "high" || sr.priority === "critical" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}>
-                    {sr.priority}
-                  </Badge>
+                  <h3 className="font-semibold text-foreground mb-1">{ticket.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{ticket.description}</p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Updated: {ticket.updated}
+                    </span>
+                    <span>Assignee: {ticket.assignee}</span>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-foreground mb-1">{sr.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{sr.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Updated: {sr.updated}
-                  </span>
-                  <span>Assignee: {sr.assignee}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Open Incidents - from chat + mock data */}
+      {/* Open Incidents - Only from chat (real-time sync with Support Engineer) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-warning" />
-            Open Incidents ({openIncidentsData.length + openIncidents.length})
+            Open Incidents ({openIncidentsData.length})
           </CardTitle>
           <CardDescription>
-            Incidents created via chat and existing incidents
+            Incidents linked to your service requests (synced with IT Support Engineer)
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {/* Incidents from chat */}
-            {openIncidentsData.map((incident) => (
-              <div
-                key={incident.id}
-                className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-warning/5"
-                onClick={() => setSelectedIncident(incident)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono text-xs">{incident.id}</Badge>
-                    <Badge className="bg-warning/10 text-warning">
-                      {incident.status.replace("-", " ")}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">From Chat</Badge>
-                  </div>
-                  <Badge className="bg-destructive/10 text-destructive">
-                    {incident.priority}
-                  </Badge>
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">{incident.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{incident.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Updated: {incident.updated}
-                  </span>
-                  <span>Assignee: {incident.assignee}</span>
-                </div>
-              </div>
-            ))}
-            
-            {/* Mock existing incidents */}
-            {openIncidents.map((incident) => (
-              <div
-                key={incident.id}
-                className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-warning/5"
-                onClick={() => setSelectedIncident(incident)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono text-xs">{incident.id}</Badge>
-                    <Badge className="bg-warning/10 text-warning">
-                      {incident.status.replace("-", " ")}
+          {openIncidentsData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No open incidents</p>
+              <p className="text-sm mt-1">Incidents will appear here when sensitive requests are escalated</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {openIncidentsData.map((incident) => (
+                <div
+                  key={incident.id}
+                  className="border border-warning/30 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-warning/5"
+                  onClick={() => setSelectedIncident(incident)}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="font-mono text-xs hover:bg-warning/10 transition-colors">{incident.id}</Badge>
+                      <Badge className={
+                        incident.status === "pending-approval"
+                          ? "bg-warning/10 text-warning"
+                          : incident.status === "in-progress"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted/10 text-muted-foreground"
+                      }>
+                        {incident.status.replace("-", " ")}
+                      </Badge>
+                      {incident.relatedSR && (
+                        <Badge variant="secondary" className="text-xs">
+                          Linked to {incident.relatedSR}
+                        </Badge>
+                      )}
+                    </div>
+                    <Badge className="bg-destructive/10 text-destructive">
+                      {incident.priority}
                     </Badge>
                   </div>
-                  <Badge className="bg-destructive/10 text-destructive">
-                    {incident.priority}
-                  </Badge>
+                  <h3 className="font-semibold text-foreground mb-1">{incident.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{incident.description}</p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Updated: {incident.updated}
+                    </span>
+                    <span>Assignee: {incident.assignee}</span>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-foreground mb-1">{incident.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{incident.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Updated: {incident.updated}
-                  </span>
-                  <span>Related SR: {incident.relatedSR}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Past Incidents - from chat + mock data */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-success" />
-            Past Incidents ({pastIncidentsData.length + pastIncidents.length})
-          </CardTitle>
-          <CardDescription>
-            Resolved and closed incidents
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {/* Past incidents from chat */}
-            {pastIncidentsData.map((incident) => (
-              <div
-                key={incident.id}
-                className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-success/5"
-                onClick={() => setSelectedIncident(incident)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono text-xs">{incident.id}</Badge>
-                    <Badge className="bg-success/10 text-success">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      {incident.status}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">From Chat</Badge>
-                  </div>
-                  <Badge className={incident.priority === "high" ? "bg-warning/10 text-warning" : "bg-muted/10"}>
-                    {incident.priority}
-                  </Badge>
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">{incident.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{incident.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Resolved: {incident.updated}
-                  </span>
-                  <span>Assignee: {incident.assignee}</span>
-                </div>
-              </div>
-            ))}
-            
-            {/* Mock past incidents */}
-            {pastIncidents.map((incident) => (
-              <div
-                key={incident.id}
-                className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-success/5"
-                onClick={() => setSelectedIncident(incident)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono text-xs">{incident.id}</Badge>
-                    <Badge className="bg-success/10 text-success">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      {incident.status}
-                    </Badge>
-                  </div>
-                  <Badge className={incident.priority === "high" ? "bg-warning/10 text-warning" : "bg-muted/10"}>
-                    {incident.priority}
-                  </Badge>
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">{incident.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{incident.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Resolved: {incident.updated}
-                  </span>
-                  <span>Related SR: {incident.relatedSR}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Modals */}
       {selectedTicket && (

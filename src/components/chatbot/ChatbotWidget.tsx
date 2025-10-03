@@ -130,13 +130,13 @@ export function ChatbotWidget() {
                 </div>
               ))}
               {isTyping && (
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-2 text-muted-foreground p-3 bg-muted/30 rounded-lg animate-pulse">
                   <div className="flex gap-1">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse-subtle" />
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse-subtle" style={{ animationDelay: "0.2s" }} />
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse-subtle" style={{ animationDelay: "0.4s" }} />
+                    <div className="h-2 w-2 rounded-full bg-primary animate-bounce" />
+                    <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.2s" }} />
+                    <div className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.4s" }} />
                   </div>
-                  <span className="text-sm">AI is thinking...</span>
+                  <span className="text-sm font-medium">Assistant is thinking...</span>
                 </div>
               )}
               <div ref={scrollRef} />

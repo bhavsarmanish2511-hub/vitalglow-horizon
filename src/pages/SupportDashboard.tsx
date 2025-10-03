@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { MetricCard } from '@/components/support/MetricCard';
 import { TicketDetailView } from '@/components/support/TicketDetailView';
 import { mockTickets, Ticket } from '@/data/mockTickets';
+import { useTickets } from '@/contexts/TicketsContext';
 import { 
   Ticket as TicketIcon, 
   CheckCircle, 
@@ -15,7 +16,8 @@ import {
 } from 'lucide-react';
 
 export default function SupportDashboard() {
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const { incidents } = useTickets();
 
   const metrics = [
     { title: 'Open Tickets', value: '23', change: 12, icon: TicketIcon, color: 'text-primary' },
@@ -23,21 +25,31 @@ export default function SupportDashboard() {
     { title: 'Avg Resolution Time', value: '2.5h', change: -15, icon: Clock, color: 'text-warning' },
     { title: 'Customer Satisfaction', value: '4.8', change: 5, icon: Star, color: 'text-warning' },
     { title: 'Escalation Rate', value: '8%', change: -3, icon: TrendingUp, color: 'text-destructive' },
-    { title: 'Resolution Accuracy', value: '94%', change: 2, icon: Target, color: 'text-success' },
+    { title: 'Resolution Accuracy', value: '94%', change: -2, icon: Target, color: 'text-success' },
   ];
 
-  const handleTicketClick = (ticket: Ticket) => {
+  // Combine mock tickets with incidents from Business User (real-time sync)
+  const allIncidents = [
+    ...mockTickets.filter(t => t.type === 'incident'),
+    ...incidents.map(inc => ({
+      ...inc,
+      type: 'incident' as const,
+      createdBy: 'james@fincompany.com' // Business user incidents
+    }))
+  ];
+
+  const handleTicketClick = (ticket: any) => {
     setSelectedTicket(ticket);
   };
 
   const handleNotificationTicketClick = (ticketId: string) => {
-    const ticket = mockTickets.find(t => t.id === ticketId);
+    const ticket = allIncidents.find(t => t.id === ticketId);
     if (ticket) {
       setSelectedTicket(ticket);
     }
   };
 
-  const getStatusColor = (status: Ticket['status']) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'resolved':
         return 'bg-success/10 text-success';
@@ -46,6 +58,7 @@ export default function SupportDashboard() {
       case 'in-progress':
         return 'bg-primary/10 text-primary';
       case 'new':
+      case 'pending-approval':
         return 'bg-warning/10 text-warning';
       case 'waiting-for-user':
         return 'bg-muted/50 text-muted-foreground';
@@ -54,7 +67,7 @@ export default function SupportDashboard() {
     }
   };
 
-  const getPriorityColor = (priority: Ticket['priority']) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'critical':
       case 'high':
@@ -67,6 +80,7 @@ export default function SupportDashboard() {
         return 'bg-muted';
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -84,20 +98,20 @@ export default function SupportDashboard() {
         ))}
       </div>
 
-      {/* Incidents List */}
+      {/* Incidents List - Including Business User Incidents (Real-time Sync) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TicketIcon className="h-5 w-5 text-primary" />
-            Assigned Incidents ({mockTickets.filter(t => t.type === 'incident').length})
+            Assigned Incidents ({allIncidents.length})
           </CardTitle>
           <CardDescription>
-            Click on an incident number to view detailed information
+            Click on an incident number to view detailed information (synced with Business User dashboard)
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {mockTickets.filter(t => t.type === 'incident').map((ticket) => (
+            {allIncidents.map((ticket) => (
               <div
                 key={ticket.id}
                 className={`border border-border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${

@@ -64,16 +64,21 @@ export function useChatbot() {
     addMessage({ role: "user", content, type: "text" });
     setInputValue("");
 
-    await simulateTyping();
+    // Step 1: Show "Assistant is thinking..." for 5 seconds
+    await simulateTyping(5000);
 
     const lowerContent = content.toLowerCase();
     const isSensitive = isSensitiveRequest(content);
 
-    // Better conversational matching
+    // Determine request type
     const isPayrollRequest = lowerContent.includes("payroll") || 
                             lowerContent.includes("pay slip") || 
                             lowerContent.includes("salary") ||
-                            lowerContent.includes("pay check");
+                            lowerContent.includes("pay check") ||
+                            lowerContent.includes("payslip");
+    const isInstallRequest = lowerContent.includes("install") || 
+                            lowerContent.includes("application") ||
+                            lowerContent.includes("software");
     const isExpenseRequest = lowerContent.includes("expense") || 
                             lowerContent.includes("report") ||
                             lowerContent.includes("summary");
@@ -84,34 +89,71 @@ export function useChatbot() {
                            lowerContent.includes("incident") ||
                            lowerContent.includes("check");
 
+    // Generate SR Ticket ID with date format
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+    const srNumber = Math.floor(Math.random() * 900) + 100;
+    const ticketId = `SR-${dateStr}-${srNumber}`;
+    const now = new Date().toLocaleString();
+    const chatHistory = getChatHistory();
+
     // Handle different types of requests
-    if (isPayrollRequest) {
+    if (isPayrollRequest || isInstallRequest) {
+      // Step 2: AI generates SR Ticket
       addMessage({
         role: "assistant",
-        content: "Sure, I will be happy to assist you with that.",
+        content: `I'll help you with that. Creating Service Request ${ticketId}...`,
         type: "text"
       });
 
       await simulateTyping(1000);
 
+      const newTicket = {
+        id: ticketId,
+        title: isPayrollRequest ? "Payroll Information Request" : "Application Installation Request",
+        description: content,
+        status: "open",
+        priority: isSensitive ? "high" : "medium",
+        assignee: isPayrollRequest ? "Finance Team" : "IT Support",
+        created: now,
+        updated: now,
+        category: isPayrollRequest ? "Payroll" : "Technical",
+        chatHistory,
+        comments: [
+          { author: "AI Assistant", content: "Service Request created successfully", timestamp: now }
+        ]
+      };
+      
+      // Add SR to global state
+      addTicket(newTicket);
+      
+      addMessage({
+        role: "assistant",
+        content: `Service Request ${ticketId} created successfully.`,
+        type: "ticket",
+        ticketId: ticketId,
+        data: newTicket
+      });
+
+      // Step 3: AI buffers for 3-5 seconds and decides resolution path
+      await simulateTyping(4000);
+
       if (isSensitive) {
+        // Case B: Sensitive request - Create Incident
         addMessage({
           role: "assistant",
-          content: "As this contains sensitive information, I'll create an incident and route it to the Financial IT team.",
+          content: "This request contains sensitive information. Creating an incident and routing to IT Support Engineer...",
           type: "text"
         });
 
-        await simulateTyping(1500);
+        await simulateTyping(2000);
 
-        // Create incident with chat history
-        const incidentId = `INC${Math.floor(Math.random() * 90000) + 10000}`;
-        const now = new Date().toLocaleString();
-        const chatHistory = getChatHistory();
+        const incidentId = `INC${Math.floor(Math.random() * 90000000) + 10000000}`;
         
         const newIncident = {
           id: incidentId,
-          title: "Sensitive Payroll Data Access",
-          description: "Request to access sensitive payroll information",
+          title: `Sensitive ${isPayrollRequest ? 'Payroll' : 'Data'} Access - Linked to ${ticketId}`,
+          description: `Incident created for sensitive request: ${content}`,
           status: "pending-approval",
           priority: "critical",
           assignee: "andrews@intelletica.com",
@@ -119,68 +161,70 @@ export function useChatbot() {
           updated: now,
           category: "Security",
           chatHistory,
+          relatedSR: ticketId,
           timeline: [
-            { status: "Created", timestamp: now, description: "Incident created by AI Assistant" },
-            { status: "Routed", timestamp: now, description: "Routed to Finance Manager for approval" }
+            { status: "Created", timestamp: now, description: `Incident created by AI Assistant (Linked to ${ticketId})` },
+            { status: "Routed", timestamp: now, description: "Routed to IT Support Engineer for approval" }
           ]
         };
         
-        // Add to global state
+        // Add incident to global state
         addIncident(newIncident);
         
         addMessage({
           role: "assistant",
-          content: `Incident ${incidentId} created successfully. Awaiting approval from Finance Manager (andrews@intelletica.com).`,
+          content: `Incident ${incidentId} created and routed to IT Support Engineer dashboard. Awaiting approval.`,
           type: "incident",
           ticketId: incidentId,
           data: newIncident
         });
       } else {
-        // Create SR ticket with chat history
-        const ticketId = `SR${Math.floor(Math.random() * 90000) + 10000}`;
-        const now = new Date().toLocaleString();
-        const chatHistory = getChatHistory();
-        
-        const newTicket = {
-          id: ticketId,
-          title: "Payroll Information Request",
-          description: content,
-          status: "open",
-          priority: "high",
-          assignee: "Finance Team",
-          created: now,
-          updated: now,
-          category: "Payroll",
-          chatHistory,
-          comments: [
-            { author: "AI Assistant", content: "Ticket created and routed to Finance Team", timestamp: now }
-          ]
-        };
-        
-        // Add to global state
-        addTicket(newTicket);
-        
+        // Case A: Non-sensitive request - Add resolution to SR
         addMessage({
           role: "assistant",
-          content: `Service Request ${ticketId} created successfully.`,
+          content: "Processing your request...",
+          type: "text"
+        });
+
+        await simulateTyping(2000);
+
+        // Update ticket with resolution
+        const updatedTicket = {
+          ...newTicket,
+          status: "resolved",
+          updated: new Date().toLocaleString(),
+          comments: [
+            ...(newTicket.comments || []),
+            { 
+              author: "AI Assistant", 
+              content: isInstallRequest 
+                ? "Application installation instructions have been sent to your email. Installation package is available on the IT portal." 
+                : "Your request has been processed. Please check your email for the information.",
+              timestamp: new Date().toLocaleString() 
+            }
+          ]
+        };
+
+        // Update ticket in global state
+        addTicket(updatedTicket);
+
+        addMessage({
+          role: "assistant",
+          content: `✓ Service Request ${ticketId} resolved successfully. ${isInstallRequest ? 'Installation instructions sent to your email.' : 'Information has been sent to your email.'}`,
           type: "ticket",
           ticketId: ticketId,
-          data: newTicket
+          data: updatedTicket
         });
       }
     } else if (isExpenseRequest) {
       addMessage({
         role: "assistant",
-        content: "I'll generate the expense summary for you. Creating service request...",
+        content: `I'll generate the expense summary for you. Creating Service Request ${ticketId}...`,
         type: "text"
       });
 
       await simulateTyping(1500);
 
-      const ticketId = `SR${Math.floor(Math.random() * 90000) + 10000}`;
-      const now = new Date().toLocaleString();
-      const chatHistory = getChatHistory();
-      
       const newTicket = {
         id: ticketId,
         title: "Q4 2024 Expense Summary",
@@ -197,7 +241,6 @@ export function useChatbot() {
         ]
       };
       
-      // Add to global state
       addTicket(newTicket);
       
       addMessage({
@@ -241,15 +284,11 @@ export function useChatbot() {
     } else if (isAccessRequest) {
       addMessage({
         role: "assistant",
-        content: "I'll help you with database access. Let me create a service request for you.",
+        content: `I'll help you with database access. Creating Service Request ${ticketId}...`,
         type: "text"
       });
 
       await simulateTyping(1500);
-
-      const ticketId = `SR${Math.floor(Math.random() * 90000) + 10000}`;
-      const now = new Date().toLocaleString();
-      const chatHistory = getChatHistory();
       
       const newTicket = {
         id: ticketId,
@@ -267,7 +306,6 @@ export function useChatbot() {
         ]
       };
       
-      // Add to global state
       addTicket(newTicket);
       
       addMessage({
@@ -278,11 +316,10 @@ export function useChatbot() {
         data: newTicket
       });
     } else {
-      // More conversational default response
       const responses = [
-        "I'd be happy to help you with that. Could you provide more details? I can assist with payroll requests, expense reports, database access, or checking incident status.",
-        "Sure! I'm here to assist. Are you looking for help with payroll information, generating reports, or something else?",
-        "I'm ready to help! Let me know if you need access to payroll, want to generate a report, need database permissions, or want to check on a ticket status."
+        "I'd be happy to help you with that. Could you provide more details? I can assist with payroll requests, application installation, expense reports, database access, or checking incident status.",
+        "Sure! I'm here to assist. Are you looking for help with payroll information, installing applications, generating reports, or something else?",
+        "I'm ready to help! Let me know if you need access to payroll, want to install an application, generate a report, need database permissions, or want to check on a ticket status."
       ];
       addMessage({
         role: "assistant",
