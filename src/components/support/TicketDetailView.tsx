@@ -39,8 +39,8 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
     setTimeout(() => {
       setIsExecuting(false);
       toast({
-        title: "Workflow Executed Successfully",
-        description: "The recommended fix has been applied and worklog updated.",
+        title: "Worklog Updated Successfully",
+        description: "The incident worklog has been updated with the recommended fix.",
       });
     }, 2000);
   };
@@ -234,7 +234,7 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
                     disabled={isExecuting}
                     className="w-full"
                   >
-                    {isExecuting ? "Executing Workflow..." : "Execute Recommended Workflow"}
+                    {isExecuting ? "Updating Worklog..." : "Update Worklog"}
                   </Button>
                 </CardContent>
               </Card>

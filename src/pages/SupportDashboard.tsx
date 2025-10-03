@@ -47,6 +47,8 @@ export default function SupportDashboard() {
         return 'bg-primary/10 text-primary';
       case 'new':
         return 'bg-warning/10 text-warning';
+      case 'waiting-for-user':
+        return 'bg-muted/50 text-muted-foreground';
       default:
         return 'bg-muted';
     }
@@ -82,20 +84,20 @@ export default function SupportDashboard() {
         ))}
       </div>
 
-      {/* Tickets List */}
+      {/* Incidents List */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TicketIcon className="h-5 w-5 text-primary" />
-            Active Tickets ({mockTickets.filter(t => t.status !== 'resolved').length})
+            Assigned Incidents ({mockTickets.filter(t => t.type === 'incident').length})
           </CardTitle>
           <CardDescription>
-            Click on a ticket to view detailed information
+            Click on an incident number to view detailed information
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {mockTickets.map((ticket) => (
+            {mockTickets.filter(t => t.type === 'incident').map((ticket) => (
               <div
                 key={ticket.id}
                 className={`border border-border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${

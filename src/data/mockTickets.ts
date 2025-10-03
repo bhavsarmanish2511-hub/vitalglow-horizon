@@ -2,7 +2,7 @@ export interface Ticket {
   id: string;
   title: string;
   description: string;
-  status: 'new' | 'in-progress' | 'escalated' | 'resolved';
+  status: 'new' | 'in-progress' | 'escalated' | 'resolved' | 'waiting-for-user';
   priority: 'low' | 'medium' | 'high' | 'critical';
   assignee: string;
   createdBy: string;
@@ -36,7 +36,7 @@ export interface Ticket {
 
 export const mockTickets: Ticket[] = [
   {
-    id: 'INC-001',
+    id: 'INC324511',
     title: 'Sensitive Payroll Data Access - Incident from Business User',
     description: 'Incident created for accessing sensitive payroll information requested by james@fincompany.com',
     status: 'in-progress',
@@ -108,7 +108,7 @@ export const mockTickets: Ticket[] = [
     ]
   },
   {
-    id: 'SR-102',
+    id: 'INC-102',
     title: 'VPN Connection Issues',
     description: 'User unable to connect to company VPN from remote location',
     status: 'new',
@@ -118,28 +118,28 @@ export const mockTickets: Ticket[] = [
     created: '2024-01-15 14:20',
     updated: '2024-01-15 14:20',
     category: 'Network',
-    type: 'service-request'
+    type: 'incident'
   },
   {
-    id: 'SR-103',
+    id: 'INC-103',
     title: 'Email Sync Problem',
     description: 'Outlook not syncing emails for the past 2 hours',
-    status: 'in-progress',
+    status: 'waiting-for-user',
     priority: 'medium',
-    assignee: 'support@intelletica.com',
+    assignee: 'martha@intelletica.com',
     createdBy: 'jane@company.com',
     created: '2024-01-15 11:00',
     updated: '2024-01-15 13:45',
     category: 'Email',
-    type: 'service-request'
+    type: 'incident'
   },
   {
-    id: 'INC-004',
+    id: 'INC-104',
     title: 'Database Performance Degradation',
     description: 'Production database showing slow query response times',
     status: 'escalated',
     priority: 'critical',
-    assignee: 'dba-team@intelletica.com',
+    assignee: 'martha@intelletica.com',
     createdBy: 'monitor@system.com',
     created: '2024-01-15 08:15',
     updated: '2024-01-15 15:30',
@@ -147,16 +147,16 @@ export const mockTickets: Ticket[] = [
     type: 'incident'
   },
   {
-    id: 'SR-105',
-    title: 'Software License Request',
-    description: 'Request for Adobe Creative Cloud license for new employee',
+    id: 'INC-105',
+    title: 'Application Server Timeout',
+    description: 'Application server experiencing timeout errors during peak hours',
     status: 'resolved',
-    priority: 'low',
-    assignee: 'licensing@intelletica.com',
-    createdBy: 'hr@company.com',
+    priority: 'high',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'monitor@system.com',
     created: '2024-01-14 09:00',
     updated: '2024-01-15 10:30',
-    category: 'Licensing',
-    type: 'service-request'
+    category: 'Infrastructure',
+    type: 'incident'
   }
 ];
