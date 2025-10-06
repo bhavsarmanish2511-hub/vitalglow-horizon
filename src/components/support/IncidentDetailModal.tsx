@@ -39,6 +39,8 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
   const [showEmailPreview, setShowEmailPreview] = useState(false);
   const [downloadLink, setDownloadLink] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [emailSentFromApproval, setEmailSentFromApproval] = useState(false);
+  const [waitingForApproval, setWaitingForApproval] = useState(false);
   // Local state to track the current incident state
   const [localIncident, setLocalIncident] = useState<Incident | null>(incident);
   const { toast } = useToast();
@@ -47,6 +49,8 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
   // Update local state when incident prop changes
   useEffect(() => {
     setLocalIncident(incident);
+    setEmailSentFromApproval(false);
+    setWaitingForApproval(false);
   }, [incident]);
 
   if (!localIncident) return null;
@@ -110,6 +114,70 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
     }, 5000);
   };
 
+  const handleSendEmailFromApproval = () => {
+    setEmailSentFromApproval(true);
+    setWaitingForApproval(true);
+    
+    const now = new Date().toLocaleString();
+    const updatedTimeline = [
+      ...localIncident.timeline,
+      {
+        status: "Email Sent",
+        timestamp: now,
+        description: "Approval email sent to andrews@intelletica.com"
+      }
+    ];
+    
+    const updatedIncident = {
+      ...localIncident,
+      emailSent: true,
+      timeline: updatedTimeline
+    };
+    
+    setLocalIncident(updatedIncident);
+    updateIncident(localIncident.id, {
+      emailSent: true,
+      timeline: updatedTimeline
+    });
+
+    toast({
+      title: "Email Sent",
+      description: "Approval request has been sent to andrews@intelletica.com. Waiting for approval...",
+    });
+
+    // After 5 seconds, show approval notification and update status
+    setTimeout(() => {
+      setWaitingForApproval(false);
+      
+      toast({
+        title: "Approval Received",
+        description: "Approval for this ticket is received from andrews@intelletica.com",
+      });
+
+      const approvalTime = new Date().toLocaleString();
+      const approvedTimeline = [
+        ...updatedTimeline,
+        {
+          status: "Approved",
+          timestamp: approvalTime,
+          description: "Approval received from andrews@intelletica.com"
+        }
+      ];
+      
+      const finalIncident = {
+        ...updatedIncident,
+        approvalStatus: 'approved' as const,
+        timeline: approvedTimeline
+      };
+      
+      setLocalIncident(finalIncident);
+      updateIncident(localIncident.id, {
+        approvalStatus: 'approved',
+        timeline: approvedTimeline
+      });
+    }, 5000);
+  };
+
   const handleAttachLink = () => {
     if (!downloadLink.trim()) {
       toast({
@@ -124,9 +192,9 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
     const updatedTimeline = [
       ...localIncident.timeline,
       {
-        status: "Link Attached",
+        status: "Resolution Added",
         timestamp: now,
-        description: `Download link attached: ${downloadLink}`
+        description: `Resolution link attached: ${downloadLink}`
       }
     ];
     
@@ -142,9 +210,29 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
       timeline: updatedTimeline
     });
 
+    // Also update the linked SR ticket with resolution
+    if (localIncident.relatedSR) {
+      const linkedTicket = getTicketById(localIncident.relatedSR);
+      if (linkedTicket) {
+        updateTicket(localIncident.relatedSR, {
+          resolution: downloadLink,
+          status: 'resolved',
+          updated: now,
+          comments: [
+            ...(linkedTicket.comments || []),
+            {
+              author: 'Support Engineer',
+              content: `Resolution added: Download link attached`,
+              timestamp: now
+            }
+          ]
+        });
+      }
+    }
+
     toast({
-      title: "Link Attached",
-      description: "Download link has been attached to the incident",
+      title: "Resolution Attached",
+      description: "Download link has been attached to the incident and linked ticket",
     });
 
     setShowLinkInput(false);
@@ -266,7 +354,7 @@ Support Team
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onClose}>
+      <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 flex flex-col gap-0">
           <DialogHeader className="px-6 pt-6 pb-4">
             <div className="flex items-center gap-3 mb-2">
@@ -397,7 +485,7 @@ Support Team
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Request Time:</span>
-                      <span className="font-medium">{incident.created}</span>
+                      <span className="font-medium">{localIncident.created}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">User Location:</span>
@@ -486,7 +574,7 @@ Support Team
                       Approval Status
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                     <Badge className={
                       localIncident.approvalStatus === 'approved'
                         ? "bg-success text-success-foreground"
@@ -494,28 +582,100 @@ Support Team
                     }>
                       {localIncident.approvalStatus.toUpperCase()}
                     </Badge>
+                    
+                    {!emailSentFromApproval && localIncident.approvalStatus !== 'approved' && (
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleSendEmailFromApproval} 
+                          size="sm"
+                          className="flex items-center gap-2"
+                        >
+                          <Mail className="h-4 w-4" />
+                          Send Email to Manager
+                        </Button>
+                      </div>
+                    )}
+
+                    {emailSentFromApproval && waitingForApproval && (
+                      <div className="space-y-3">
+                        <div className="flex gap-2 items-center">
+                          <Button 
+                            disabled 
+                            size="sm"
+                            variant="outline"
+                            className="flex items-center gap-2"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Email Sent
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setShowEmailPreview(true)}
+                            className="flex items-center gap-2"
+                          >
+                            <FileText className="h-4 w-4" />
+                            View Email
+                          </Button>
+                        </div>
+                        <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-warning animate-pulse" />
+                            <p className="text-sm text-warning-foreground">
+                              Waiting for manager approval (approx. 5 seconds)...
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {emailSentFromApproval && !waitingForApproval && localIncident.approvalStatus !== 'approved' && (
+                      <div className="flex gap-2 items-center">
+                        <Button 
+                          disabled 
+                          size="sm"
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Email Sent
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setShowEmailPreview(true)}
+                          className="flex items-center gap-2"
+                        >
+                          <FileText className="h-4 w-4" />
+                          View Email
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
 
-              {/* Download Link */}
+              {/* Resolution Field */}
               {localIncident.downloadLink && (
-                <Card className="bg-primary/5 border-primary/20">
+                <Card className="bg-success/5 border-success/20">
                   <CardHeader>
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4" />
-                      Download Link
+                      <LinkIcon className="h-4 w-4 text-success" />
+                      Resolution
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <a 
-                      href={localIncident.downloadLink} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline break-all"
-                    >
-                      {localIncident.downloadLink}
-                    </a>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Download Link:</p>
+                      <a 
+                        href={localIncident.downloadLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline break-all text-sm font-medium"
+                      >
+                        {localIncident.downloadLink}
+                      </a>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -583,26 +743,32 @@ Support Team
                 </Card>
               )}
 
-              {/* Link Input Section */}
+              {/* Resolution Link Input Section */}
               {showLinkInput && (
-                <Card className="bg-muted/50">
+                <Card className="bg-primary/5 border-primary/20">
                   <CardHeader>
-                    <CardTitle className="text-sm">Attach Download Link</CardTitle>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4" />
+                      Attach Resolution Link
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <Label htmlFor="downloadLink">Download Link URL</Label>
+                      <Label htmlFor="downloadLink">Resolution Download Link URL</Label>
                       <Input
                         id="downloadLink"
                         value={downloadLink}
                         onChange={(e) => setDownloadLink(e.target.value)}
-                        placeholder="https://example.com/financial-report.pdf"
+                        placeholder="https://fincompany.sharepoint.com/reports/financial-report-Q4.pdf"
                         className="mt-2"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This link will be attached as the resolution and visible to the business user
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <Button onClick={handleAttachLink}>
-                        Attach Link
+                        Attach Resolution Link
                       </Button>
                       <Button variant="outline" onClick={() => setShowLinkInput(false)}>
                         Cancel
@@ -615,28 +781,15 @@ Support Team
           </ScrollArea>
 
           <div className="flex gap-3 px-6 py-4 border-t mt-0 bg-background flex-wrap">
-            {!localIncident.emailSent && localIncident.status !== 'closed' && (
-              <Button onClick={handleSendEmail} className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Send Email to Manager
-              </Button>
-            )}
-            
             {localIncident.approvalStatus === 'approved' && !localIncident.downloadLink && !showLinkInput && (
-              <Button onClick={() => setShowLinkInput(true)} variant="outline" className="flex items-center gap-2">
+              <Button onClick={() => setShowLinkInput(true)} className="flex items-center gap-2">
                 <LinkIcon className="h-4 w-4" />
-                Attach Download Link
-              </Button>
-            )}
-
-            {localIncident.downloadLink && localIncident.status !== 'closed' && (
-              <Button onClick={handleSendLinkToUser} className="flex items-center gap-2">
-                Send Link to User
+                Attach Resolution Link
               </Button>
             )}
 
             {localIncident.approvalStatus === 'approved' && localIncident.downloadLink && localIncident.status !== 'closed' && (
-              <Button onClick={handleCloseTicket} className="flex items-center gap-2">
+              <Button onClick={handleCloseTicket} className="flex items-center gap-2 bg-success text-success-foreground hover:bg-success/90">
                 <CheckCircle className="h-4 w-4" />
                 Close Ticket
               </Button>

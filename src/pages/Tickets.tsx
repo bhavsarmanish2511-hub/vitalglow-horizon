@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Ticket, Clock, CheckCircle2, AlertCircle, User } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,10 +6,29 @@ import { Button } from "@/components/ui/button";
 import { TicketDetailsModal } from "@/components/tickets/TicketDetailsModal";
 import { useTickets } from "@/contexts/TicketsContext";
 import type { Ticket as TicketType } from "@/contexts/TicketsContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Tickets = () => {
   const { tickets } = useTickets();
   const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(null);
+  const { toast } = useToast();
+
+  // Listen for ticket resolution notifications
+  useEffect(() => {
+    const handleTicketResolved = (event: CustomEvent) => {
+      const { srId, title } = event.detail;
+      toast({
+        title: "Ticket Resolved",
+        description: `${srId}: ${title} has been resolved by Support Engineer`,
+        duration: 5000,
+      });
+    };
+
+    window.addEventListener('ticket-resolved', handleTicketResolved as EventListener);
+    return () => {
+      window.removeEventListener('ticket-resolved', handleTicketResolved as EventListener);
+    };
+  }, [toast]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {

@@ -46,7 +46,7 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 flex flex-col gap-0">
         <DialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3 mb-2">

@@ -10,95 +10,12 @@ import { useTickets } from "@/contexts/TicketsContext";
 import { useToast } from "@/hooks/use-toast";
 import { NotificationPanel } from "@/components/support/NotificationPanel";
 
-// Mock data
-const openServiceRequests = [
-  {
-    id: "SR12345",
-    title: "Payroll Access Request",
-    description: "Request to access payroll information for Q4 2024",
-    status: "in-progress",
-    priority: "high",
-    assignee: "Finance IT Team",
-    created: "2024-01-15 09:30",
-    updated: "2024-01-15 14:20",
-    category: "Payroll",
-    comments: [
-      { author: "AI Assistant", content: "Ticket created and routed to Finance IT Team", timestamp: "2024-01-15 09:30" },
-      { author: "Finance IT Team", content: "Request received, processing sensitive information", timestamp: "2024-01-15 14:20" }
-    ],
-    chatHistory: [
-      { role: "user", content: "I need to access my payroll, could you please help me with that?" },
-      { role: "assistant", content: "Sure, I will be happy to assist you with that. As this contains sensitive information, I'll create a service request and route it to the Financial IT team." }
-    ]
-  },
-  {
-    id: "SR12346",
-    title: "Expense Summary Request",
-    description: "Request for Q4 2024 expense summary report",
-    status: "pending",
-    priority: "medium",
-    assignee: "Finance Team",
-    created: "2024-01-15 11:00",
-    updated: "2024-01-15 11:00",
-    category: "Reports",
-    comments: [
-      { author: "AI Assistant", content: "Service request created successfully", timestamp: "2024-01-15 11:00" }
-    ],
-    chatHistory: [
-      { role: "user", content: "Show me the latest expense summary" },
-      { role: "assistant", content: "I'll generate the Q4 2024 expense summary for you. Creating service request..." }
-    ]
-  }
-];
-
-const openIncidents = [
-  {
-    id: "INC56789",
-    title: "Sensitive Payroll Data Access",
-    description: "Incident created for accessing sensitive payroll information",
-    status: "in-progress",
-    priority: "critical",
-    assignee: "andrews@intelletica.com",
-    created: "2024-01-15 09:31",
-    updated: "2024-01-15 15:45",
-    category: "Security",
-    timeline: [
-      { status: "Created", timestamp: "2024-01-15 09:31", description: "Incident created by AI Assistant" },
-      { status: "Routed", timestamp: "2024-01-15 09:32", description: "Routed to Finance Manager" },
-      { status: "Approved", timestamp: "2024-01-15 10:15", description: "Approved by andrews@intelletica.com" },
-      { status: "In Progress", timestamp: "2024-01-15 14:20", description: "Finance IT Team processing request" }
-    ],
-    relatedSR: "SR12345"
-  }
-];
-
-const pastIncidents = [
-  {
-    id: "INC56788",
-    title: "Database Access Issue",
-    description: "Resolved database access problem",
-    status: "resolved",
-    priority: "high",
-    assignee: "IT Support",
-    created: "2024-01-10 08:00",
-    updated: "2024-01-12 16:30",
-    category: "Technical",
-    timeline: [
-      { status: "Created", timestamp: "2024-01-10 08:00", description: "Issue reported" },
-      { status: "In Progress", timestamp: "2024-01-10 09:00", description: "IT team investigating" },
-      { status: "Resolved", timestamp: "2024-01-12 16:30", description: "Access restored" }
-    ],
-    relatedSR: "SR12340"
-  }
-];
-
 const Dashboard = () => {
   const { tickets, incidents } = useTickets();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [selectedIncident, setSelectedIncident] = useState<any>(null);
   const { toast } = useToast();
 
-  // Listen for ticket resolution notifications
   useEffect(() => {
     const handleTicketResolved = (event: CustomEvent) => {
       const { incidentId, srId, title } = event.detail;
@@ -114,23 +31,19 @@ const Dashboard = () => {
     };
   }, [toast]);
   
-  // Separate tickets and incidents by status - ONLY from context (real-time from chat)
   const openTickets = tickets.filter(t => t.status !== "resolved" && t.status !== "closed" && t.status !== "completed");
   const openIncidentsData = incidents.filter(i => i.status !== "resolved" && i.status !== "closed");
-  
-  // Closed tickets and incidents for Past Ticket History
   const closedTickets = tickets.filter(t => t.status === "resolved" || t.status === "closed" || t.status === "completed");
   const closedIncidents = incidents.filter(i => i.status === "resolved" || i.status === "closed");
-  
-  // Combine closed items with type information
   const pastTicketHistory = [
     ...closedTickets.map(t => ({ ...t, type: "Service Request" as const })),
     ...closedIncidents.map(i => ({ ...i, type: "Incident" as const }))
   ].sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime());
 
+  // Updated Quick Actions
   const quickActions = [
     { label: "Access Payroll", prompt: "I need to access my payroll information" },
-    { label: "Generate Expense Report", prompt: "Show me the latest expense summary" },
+    { label: "Update Leave", prompt: "I want to update my leave" }, // <-- changed here
     { label: "Check Incident Status", prompt: "What's the status of my incident?" },
     { label: "Request Database Access", prompt: "I need access to the finance database" }
   ];
@@ -157,22 +70,22 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {quickActions.map((action, index) => (
               <Button
-              key={index}
-              variant="outline"
-              className="h-auto py-4 flex flex-col items-start gap-2 hover:bg-primary/10 hover:border-primary transition-all text-foreground" // <-- Add text-foreground here
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('chatbot-prompt', { detail: action.prompt }));
-              }}
-            >
-              <span className="font-medium text-sm text-foreground">{action.label}</span> {/* <-- Add text-foreground */}
-              <span className="text-xs text-muted-foreground text-left">{action.prompt}</span>
-            </Button>
+                key={index}
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-start gap-2 hover:bg-primary/10 hover:border-primary transition-all text-foreground"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('chatbot-prompt', { detail: action.prompt }));
+                }}
+              >
+                <span className="font-medium text-sm text-foreground">{action.label}</span>
+                <span className="text-xs text-muted-foreground text-left">{action.prompt}</span>
+              </Button>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Open Service Requests - Only from chat (real-time) */}
+      {/* Open Service Requests */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -232,7 +145,7 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Open Incidents - Only from chat (real-time sync with Support Engineer) */}
+      {/* Open Incidents */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

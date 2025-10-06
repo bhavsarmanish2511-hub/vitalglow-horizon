@@ -274,7 +274,10 @@ export function IncidentDetailsModal({ incident, open, onClose }: IncidentDetail
         </div> */}
         <div className="flex justify-end pt-4 border-t mt-4 px-6 pb-6">
           {incident.status === "resolved" && (
-            <Button className="border-green-200 bg-green-100 text-green-700 mr-2">
+            <Button 
+              className="border-green-200 bg-green-100 text-green-700 mr-2"
+              onClick={onClose}
+            >
               Close Incident
             </Button>
           )}

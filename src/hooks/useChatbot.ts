@@ -7,7 +7,7 @@ export interface Message {
   content: string;
   type?: "text" | "report" | "ticket" | "incident";
   data?: any;
-  ticketId?: string; // Link message to created ticket/incident
+  ticketId?: string;
 }
 
 const sensitiveKeywords = [
@@ -22,7 +22,7 @@ const isSensitiveRequest = (message: string): boolean => {
 };
 
 export function useChatbot() {
-  const { addTicket, addIncident } = useTickets();
+  const { addTicket, addIncident, updateTicket } = useTickets();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -33,7 +33,10 @@ export function useChatbot() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  
+
+  // Leave flow state
+  const [awaitingLeaveDate, setAwaitingLeaveDate] = useState(false);
+
   // Store chat history for ticket creation
   const getChatHistory = useCallback(() => {
     return messages
@@ -60,17 +63,79 @@ export function useChatbot() {
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
 
-    // Add user message
     addMessage({ role: "user", content, type: "text" });
     setInputValue("");
 
-    // Step 1: Show "Assistant is thinking..." for 5 seconds
+    // Simulate thinking
     await simulateTyping(5000);
 
     const lowerContent = content.toLowerCase();
     const isSensitive = isSensitiveRequest(content);
 
-    // Detect specific request types
+    // --- LEAVE FLOW ---
+    const isLeaveRequest = lowerContent.includes("leave");
+
+    if (awaitingLeaveDate) {
+      const leaveDate = content.trim();
+      setAwaitingLeaveDate(false);
+
+      // Generate ticket ID
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+      const srNumber = Math.floor(Math.random() * 900) + 100;
+      const ticketId = `SR${dateStr}${srNumber}`;
+      const now = new Date().toLocaleString();
+      const chatHistory = getChatHistory();
+
+      addMessage({
+        role: "assistant",
+        content: `Thank you! Updating your leave for ${leaveDate}. Creating Service Request ${ticketId}...`,
+        type: "text"
+      });
+
+      await simulateTyping(1500);
+
+      const newTicket = {
+        id: ticketId,
+        title: "Leave Update Request",
+        description: `Leave update for ${leaveDate}`,
+        status: "completed",
+        priority: "medium",
+        assignee: "AI Assistant",
+        created: now,
+        updated: now,
+        category: "Leave",
+        chatHistory,
+        comments: [
+          { author: "AI Assistant", content: `Leave updated for ${leaveDate}`, timestamp: now }
+        ]
+      };
+
+      addTicket(newTicket);
+
+      addMessage({
+        role: "assistant",
+        content: `Your leave for ${leaveDate} has been updated successfully. Service Request ${ticketId} created and closed.`,
+        type: "ticket",
+        ticketId: ticketId,
+        data: newTicket
+      });
+
+      return;
+    }
+
+    if (isLeaveRequest) {
+      setAwaitingLeaveDate(true);
+      addMessage({
+        role: "assistant",
+        content: "Please let me know which date I should apply leave for you.",
+        type: "text"
+      });
+      return;
+    }
+    // --- END LEAVE FLOW ---
+
+    // --- Other request types (existing logic, unchanged) ---
     const isPayslipRequest = lowerContent.includes("payslip") || lowerContent.includes("pay slip");
     const isPayrollRequest = lowerContent.includes("payroll") || 
                             lowerContent.includes("pay slip") || 
@@ -108,7 +173,6 @@ export function useChatbot() {
 
     // --- Conversational Payslip Flow ---
     if (isPayslipRequest) {
-      // Step 1: Acknowledge and create SR
       addMessage({
         role: "assistant",
         content: `I'll help you with that. Creating Service Request ${ticketId}`,
@@ -141,7 +205,6 @@ export function useChatbot() {
 
       await simulateTyping(2000);
 
-      // Create the ticket
       const newTicket = {
         id: ticketId,
         title: "Payslip Request",
@@ -153,6 +216,7 @@ export function useChatbot() {
         updated: now,
         category: "Payroll",
         chatHistory,
+        relatedIncident: "",
         comments: [
           { author: "AI Assistant", content: "Service Request created successfully", timestamp: now }
         ]
@@ -171,27 +235,30 @@ export function useChatbot() {
 
       // Create the incident
       const incidentId = `INC${Math.floor(Math.random() * 90000000) + 10000000}`;
-        const newIncident = {
-          id: incidentId,
-          title: `Sensitive Payslip Access - Linked to ${ticketId}`,
-          description: `Incident created for sensitive payslip request: ${content}`,
-          status: "pending-approval",
-          priority: "critical",
-          assignee: "andrews@intelletica.com",
-          createdBy: "james@fincompany.com",
-          created: now,
-          updated: now,
-          category: "Security",
-          chatHistory,
-          relatedSR: ticketId,
-          approvalStatus: 'pending' as const,
-          emailSent: false,
-          timeline: [
-            { status: "Created", timestamp: now, description: `Incident created by AI Assistant (Linked to ${ticketId})` },
-            { status: "Routed", timestamp: now, description: "Routed to IT Support Engineer for approval" }
-          ]
-        };
+      const newIncident = {
+        id: incidentId,
+        title: `Sensitive Payslip Access - Linked to ${ticketId}`,
+        description: `Incident created for sensitive payslip request: ${content}`,
+        status: "pending-approval",
+        priority: "critical",
+        assignee: "martha@intelletica.com",
+        createdBy: "james@fincompany.com",
+        created: now,
+        updated: now,
+        category: "Security",
+        chatHistory,
+        relatedSR: ticketId,
+        approvalStatus: 'pending' as const,
+        emailSent: false,
+        timeline: [
+          { status: "Created", timestamp: now, description: `Incident created by AI Assistant (Linked to ${ticketId})` },
+          { status: "Routed", timestamp: now, description: "Routed to Support Engineer for approval" }
+        ]
+      };
       addIncident(newIncident);
+      
+      // Update ticket with related incident
+      updateTicket(ticketId, { relatedIncident: incidentId });
 
       addMessage({
         role: "assistant",
@@ -201,13 +268,12 @@ export function useChatbot() {
         data: newIncident
       });
 
-      return; // Prevent further handling for this message
+      return;
     }
     // --- End Payslip Flow ---
 
     // Handle financial report and other sensitive requests
     if (isFinancialReportRequest || isPayrollRequest || isInstallRequest) {
-      // Step 2: AI generates SR Ticket
       addMessage({
         role: "assistant",
         content: `I'll help you with that. Creating Service Request ${ticketId}...`,
@@ -237,12 +303,12 @@ export function useChatbot() {
             ? "Payroll" 
             : "Technical",
         chatHistory,
+        relatedIncident: "",
         comments: [
           { author: "AI Assistant", content: "Service Request created successfully", timestamp: now }
         ]
       };
       
-      // Add SR to global state
       addTicket(newTicket);
       
       addMessage({
@@ -253,14 +319,12 @@ export function useChatbot() {
         data: newTicket
       });
 
-      // Step 3: AI buffers for 3-5 seconds and decides resolution path
       await simulateTyping(4000);
 
       if (isSensitiveReq) {
-        // Case B: Sensitive request - Create Incident
         addMessage({
           role: "assistant",
-          content: "This request contains sensitive information. Creating an incident and routing to IT Support Engineer...",
+          content: "This request contains sensitive information. Creating an incident and routing to Support Engineer...",
           type: "text"
         });
 
@@ -274,7 +338,7 @@ export function useChatbot() {
           description: `Incident created for sensitive request: ${content}`,
           status: "pending-approval",
           priority: "critical",
-          assignee: "andrews@intelletica.com",
+          assignee: "martha@intelletica.com",
           createdBy: "james@fincompany.com",
           created: now,
           updated: now,
@@ -285,22 +349,21 @@ export function useChatbot() {
           emailSent: false,
           timeline: [
             { status: "Created", timestamp: now, description: `Incident created by AI Assistant (Linked to ${ticketId})` },
-            { status: "Routed", timestamp: now, description: "Routed to IT Support Engineer for approval" }
+            { status: "Routed", timestamp: now, description: "Routed to Support Engineer for approval" }
           ]
         };
         
-        // Add incident to global state
         addIncident(newIncident);
+        updateTicket(ticketId, { relatedIncident: incidentId });
         
         addMessage({
           role: "assistant",
-          content: `Incident ${incidentId} created and routed to IT Support Engineer dashboard. Awaiting approval.`,
+          content: `Incident ${incidentId} created and routed to Support Engineer dashboard. Awaiting approval.`,
           type: "incident",
           ticketId: incidentId,
           data: newIncident
         });
       } else {
-        // Case A: Non-sensitive request - Add resolution to SR
         addMessage({
           role: "assistant",
           content: "Processing your request...",
@@ -309,7 +372,6 @@ export function useChatbot() {
 
         await simulateTyping(2000);
 
-        // Update ticket with resolution
         const updatedTicket = {
           ...newTicket,
           status: "resolved",
@@ -326,7 +388,6 @@ export function useChatbot() {
           ]
         };
 
-        // Update ticket in global state
         addTicket(updatedTicket);
 
         addMessage({
@@ -448,7 +509,7 @@ export function useChatbot() {
         type: "text"
       });
     }
-  }, [addMessage, simulateTyping, getChatHistory, addTicket, addIncident]);
+  }, [addMessage, simulateTyping, getChatHistory, addTicket, addIncident, updateTicket, awaitingLeaveDate]);
 
   return {
     messages,

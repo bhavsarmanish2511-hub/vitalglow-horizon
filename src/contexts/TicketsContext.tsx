@@ -23,6 +23,9 @@ export interface Ticket {
   category: string;
   chatHistory: ChatMessage[];
   comments?: Array<{ author: string; content: string; timestamp: string }>;
+  resolution?: string; // Download link or resolution details
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  relatedIncident?: string;
 }
 
 export interface Incident {
@@ -77,6 +80,7 @@ const mockClosedTickets: Ticket[] = [
     created: "2024-01-10 08:00",
     updated: "2024-01-12 16:30",
     category: "Reports",
+    resolution: "https://fincompany.sharepoint.com/reports/Q3-2024-sales-report.pdf",
     comments: [
       { author: "AI Assistant", content: "Service request created successfully", timestamp: "2024-01-10 08:00" },
       { author: "Data Analytics Team", content: "Report generated and delivered", timestamp: "2024-01-12 16:30" }
@@ -138,6 +142,7 @@ const mockClosedIncidents: Incident[] = [
     created: "2024-01-08 11:00",
     updated: "2024-01-10 15:30",
     category: "Security",
+    downloadLink: "https://fincompany.sharepoint.com/secure/Q3-financial-statements.pdf",
     chatHistory: [
       { role: "user", content: "I need the confidential Q3 financial statements" },
       { role: "assistant", content: "As this involves sensitive financial data, I'm creating an incident for approval." }
@@ -146,9 +151,11 @@ const mockClosedIncidents: Incident[] = [
       { status: "Created", timestamp: "2024-01-08 11:00", description: "Incident created by AI Assistant" },
       { status: "Pending Approval", timestamp: "2024-01-08 11:05", description: "Routed to Finance Manager" },
       { status: "Approved", timestamp: "2024-01-08 14:20", description: "Approved by andrews@intelletica.com" },
+      { status: "Resolution Added", timestamp: "2024-01-09 10:00", description: "Download link attached" },
       { status: "Resolved", timestamp: "2024-01-10 15:30", description: "Access granted and documents provided" }
     ],
-    relatedSR: "SR12339"
+    relatedSR: "SR12339",
+    approvalStatus: 'approved'
   },
   {
     id: "INC56785",
@@ -171,7 +178,8 @@ const mockClosedIncidents: Incident[] = [
       { status: "Approved", timestamp: "2024-01-04 10:00", description: "Approved with MFA verification required" },
       { status: "Closed", timestamp: "2024-01-05 16:00", description: "Data provided via secure encrypted channel" }
     ],
-    relatedSR: "SR12336"
+    relatedSR: "SR12336",
+    approvalStatus: 'approved'
   }
 ];
 

@@ -31,6 +31,7 @@ interface TicketData {
   created: string;
   updated: string;
   category: string;
+  resolution?: string; // Download link or resolution details
   chatHistory?: Array<{
     role: "user" | "assistant";
     content: string;
@@ -157,10 +158,10 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
   // Show the report in a modal
   const handleViewReport = () => {
     setShowReportModal(true);
-    toast({
-      title: "Opening Detailed Report",
-      description: "Viewing all AI actions taken to resolve this ticket.",
-    });
+    // toast({
+    //   title: "Opening Detailed Report",
+    //   description: "Viewing all AI actions taken to resolve this ticket.",
+    // });
   };
 
   const handleCloseReportModal = () => setShowReportModal(false);
@@ -275,6 +276,32 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
                         )}
                       </div>
                     ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Resolution Field */}
+              {ticket.resolution && (
+                <Card className="bg-success/5 border-success/20 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2 text-success">
+                      <Download className="h-4 w-4" />
+                      Resolution
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Download Link:</p>
+                      <a 
+                        href={ticket.resolution} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline break-all text-sm font-medium flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {ticket.resolution}
+                      </a>
+                    </div>
                   </CardContent>
                 </Card>
               )}
