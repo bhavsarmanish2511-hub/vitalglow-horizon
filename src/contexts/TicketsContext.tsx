@@ -32,12 +32,16 @@ export interface Incident {
   status: string;
   priority: string;
   assignee: string;
+  createdBy: string;
   created: string;
   updated: string;
   category: string;
   chatHistory: ChatMessage[];
   timeline: Array<{ status: string; timestamp: string; description: string }>;
   relatedSR?: string;
+  downloadLink?: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  emailSent?: boolean;
 }
 
 interface TicketsContextType {
@@ -130,6 +134,7 @@ const mockClosedIncidents: Incident[] = [
     status: "resolved",
     priority: "critical",
     assignee: "andrews@intelletica.com",
+    createdBy: "james@fincompany.com",
     created: "2024-01-08 11:00",
     updated: "2024-01-10 15:30",
     category: "Security",
@@ -152,6 +157,7 @@ const mockClosedIncidents: Incident[] = [
     status: "closed",
     priority: "critical",
     assignee: "hr@intelletica.com",
+    createdBy: "james@fincompany.com",
     created: "2024-01-03 09:00",
     updated: "2024-01-05 16:00",
     category: "HR Security",

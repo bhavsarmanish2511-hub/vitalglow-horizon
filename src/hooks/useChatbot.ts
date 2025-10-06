@@ -89,6 +89,13 @@ export function useChatbot() {
     const isStatusRequest = lowerContent.includes("status") || 
                            lowerContent.includes("incident") ||
                            lowerContent.includes("check");
+    const isSensitiveReq = lowerContent.includes("payroll") ||
+                           lowerContent.includes("payslip") ||
+                           lowerContent.includes("salary") ||
+                           lowerContent.includes("finance") ||
+                           lowerContent.includes("financial") ||
+                           lowerContent.includes("report") ||
+                           lowerContent.includes("hr");
 
     // Generate SR Ticket ID with date format (no hyphens)
     const today = new Date();
@@ -163,23 +170,26 @@ export function useChatbot() {
 
       // Create the incident
       const incidentId = `INC${Math.floor(Math.random() * 90000000) + 10000000}`;
-      const newIncident = {
-        id: incidentId,
-        title: `Sensitive Payslip Access - Linked to ${ticketId}`,
-        description: `Incident created for sensitive payslip request: ${content}`,
-        status: "pending-approval",
-        priority: "critical",
-        assignee: "andrews@intelletica.com",
-        created: now,
-        updated: now,
-        category: "Security",
-        chatHistory,
-        relatedSR: ticketId,
-        timeline: [
-          { status: "Created", timestamp: now, description: `Incident created by AI Assistant (Linked to ${ticketId})` },
-          { status: "Routed", timestamp: now, description: "Routed to IT Support Engineer for approval" }
-        ]
-      };
+        const newIncident = {
+          id: incidentId,
+          title: `Sensitive Payslip Access - Linked to ${ticketId}`,
+          description: `Incident created for sensitive payslip request: ${content}`,
+          status: "pending-approval",
+          priority: "critical",
+          assignee: "andrews@intelletica.com",
+          createdBy: "james@fincompany.com",
+          created: now,
+          updated: now,
+          category: "Security",
+          chatHistory,
+          relatedSR: ticketId,
+          approvalStatus: 'pending' as const,
+          emailSent: false,
+          timeline: [
+            { status: "Created", timestamp: now, description: `Incident created by AI Assistant (Linked to ${ticketId})` },
+            { status: "Routed", timestamp: now, description: "Routed to IT Support Engineer for approval" }
+          ]
+        };
       addIncident(newIncident);
 
       addMessage({
@@ -210,7 +220,7 @@ export function useChatbot() {
         title: isPayrollRequest ? "Payroll Information Request" : "Application Installation Request",
         description: content,
         status: "open",
-        priority: isSensitive ? "high" : "medium",
+        priority: isSensitiveReq ? "high" : "medium",
         assignee: isPayrollRequest ? "Support Engineer (martha@intelletica.com)" : "IT Support",
         created: now,
         updated: now,
@@ -235,7 +245,7 @@ export function useChatbot() {
       // Step 3: AI buffers for 3-5 seconds and decides resolution path
       await simulateTyping(4000);
 
-      if (isSensitive) {
+      if (isSensitiveReq) {
         // Case B: Sensitive request - Create Incident
         addMessage({
           role: "assistant",
@@ -254,11 +264,14 @@ export function useChatbot() {
           status: "pending-approval",
           priority: "critical",
           assignee: "andrews@intelletica.com",
+          createdBy: "james@fincompany.com",
           created: now,
           updated: now,
           category: "Security",
           chatHistory,
           relatedSR: ticketId,
+          approvalStatus: 'pending' as const,
+          emailSent: false,
           timeline: [
             { status: "Created", timestamp: now, description: `Incident created by AI Assistant (Linked to ${ticketId})` },
             { status: "Routed", timestamp: now, description: "Routed to IT Support Engineer for approval" }

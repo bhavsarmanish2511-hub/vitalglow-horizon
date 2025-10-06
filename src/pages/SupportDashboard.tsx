@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MetricCard } from '@/components/support/MetricCard';
 import { TicketDetailView } from '@/components/support/TicketDetailView';
+import { IncidentDetailModal } from '@/components/support/IncidentDetailModal';
+import { NotificationPanel } from '@/components/support/NotificationPanel';
 import { mockTickets, Ticket } from '@/data/mockTickets';
-import { useTickets } from '@/contexts/TicketsContext';
+import { useTickets, Incident } from '@/contexts/TicketsContext';
 import { 
   Ticket as TicketIcon, 
   CheckCircle, 
@@ -16,11 +18,29 @@ import {
   AlertCircle,
   Filter
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SupportDashboard() {
-  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [lastIncidentCount, setLastIncidentCount] = useState(0);
   const { incidents } = useTickets();
+  const { toast } = useToast();
+
+  // Show notification when new incident arrives
+  useEffect(() => {
+    const newIncidents = incidents.filter(inc => inc.status === 'new' || inc.status === 'pending-approval');
+    if (newIncidents.length > lastIncidentCount) {
+      const latestIncident = newIncidents[0];
+      toast({
+        title: "New Incident Assigned",
+        description: `${latestIncident.id}: ${latestIncident.title}`,
+        duration: 5000,
+      });
+    }
+    setLastIncidentCount(newIncidents.length);
+  }, [incidents, lastIncidentCount, toast]);
 
   const metrics = [
     { title: 'Open Tickets', value: '23', change: 12, icon: TicketIcon, color: 'text-primary' },
@@ -46,14 +66,21 @@ export default function SupportDashboard() {
     ? allIncidents 
     : allIncidents.filter(incident => incident.status === statusFilter);
 
-  const handleTicketClick = (ticket: any) => {
+  const handleTicketClick = (ticket: Ticket) => {
     setSelectedTicket(ticket);
   };
 
-  const handleNotificationTicketClick = (ticketId: string) => {
-    const ticket = allIncidents.find(t => t.id === ticketId);
-    if (ticket) {
-      setSelectedTicket(ticket);
+  const handleIncidentClick = (incident: Incident) => {
+    setSelectedIncident(incident);
+  };
+
+  const handleNotificationClick = (ticketId: string) => {
+    // Find incident by ID
+    const foundItem = allIncidents.find(t => t.id === ticketId);
+    if (foundItem && 'timeline' in foundItem) {
+      setSelectedIncident(foundItem as Incident);
+    } else if (foundItem) {
+      setSelectedTicket(foundItem as Ticket);
     }
   };
 
@@ -92,11 +119,14 @@ export default function SupportDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Support Engineer Dashboard</h1>
-        <p className="text-muted-foreground">
-          Monitor tickets, incidents, and performance metrics
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Support Engineer Dashboard</h1>
+          <p className="text-muted-foreground">
+            Monitor tickets, incidents, and performance metrics
+          </p>
+        </div>
+        <NotificationPanel onNotificationClick={handleNotificationClick} />
       </div>
 
       {/* Metrics Grid */}
@@ -142,13 +172,15 @@ export default function SupportDashboard() {
           </div>
 
           <div className="space-y-3">
-            {filteredIncidents.map((ticket) => (
+            {filteredIncidents.map((ticket) => {
+              const isIncident = 'timeline' in ticket;
+              return (
               <div
                 key={ticket.id}
                 className={`border border-border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${
                   ticket.type === 'incident' ? 'bg-warning/5' : 'bg-card'
                 }`}
-                onClick={() => handleTicketClick(ticket)}
+                onClick={() => isIncident ? handleIncidentClick(ticket as Incident) : handleTicketClick(ticket as Ticket)}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -180,9 +212,10 @@ export default function SupportDashboard() {
                     Updated: {ticket.updated}
                   </span>
                   <span>Assignee: {ticket.assignee}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -195,6 +228,13 @@ export default function SupportDashboard() {
           onClose={() => setSelectedTicket(null)}
         />
       )}
+
+      {/* Incident Detail Modal */}
+      <IncidentDetailModal
+        incident={selectedIncident}
+        open={!!selectedIncident}
+        onClose={() => setSelectedIncident(null)}
+      />
     </div>
   );
 }
