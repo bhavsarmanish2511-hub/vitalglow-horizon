@@ -46,7 +46,7 @@ export function useChatbot() {
   }, [messages]);
 
   const addMessage = useCallback((message: Omit<Message, "id">) => {
-    const id = Date.now().toString();
+    const id = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
     setMessages((prev) => [...prev, { ...message, id }]);
     return id;
   }, []);
@@ -70,7 +70,8 @@ export function useChatbot() {
     const lowerContent = content.toLowerCase();
     const isSensitive = isSensitiveRequest(content);
 
-    // Determine request type
+    // Detect specific request types
+    const isPayslipRequest = lowerContent.includes("payslip") || lowerContent.includes("pay slip");
     const isPayrollRequest = lowerContent.includes("payroll") || 
                             lowerContent.includes("pay slip") || 
                             lowerContent.includes("salary") ||
@@ -97,7 +98,103 @@ export function useChatbot() {
     const now = new Date().toLocaleString();
     const chatHistory = getChatHistory();
 
-    // Handle different types of requests
+    // --- Conversational Payslip Flow ---
+    if (isPayslipRequest) {
+      // Step 1: Acknowledge and create SR
+      addMessage({
+        role: "assistant",
+        content: `I'll help you with that. Creating Service Request ${ticketId}`,
+        type: "text"
+      });
+
+      await simulateTyping(1000);
+
+      addMessage({
+        role: "assistant",
+        content: "Please let me check.",
+        type: "text"
+      });
+
+      await simulateTyping(4000);
+
+      addMessage({
+        role: "assistant",
+        content: "It seems there is an issue with the password protected file, checking please wait.",
+        type: "text"
+      });
+
+      await simulateTyping(3000);
+
+      addMessage({
+        role: "assistant",
+        content: "I'm unable to resolve this issue, as it contains sensitive data, let me create an incident and assign a support engineer to you.",
+        type: "text"
+      });
+
+      await simulateTyping(2000);
+
+      // Create the ticket
+      const newTicket = {
+        id: ticketId,
+        title: "Payslip Request",
+        description: content,
+        status: "open",
+        priority: "high",
+        assignee: "Support Engineer (martha@intelletica.com)",
+        created: now,
+        updated: now,
+        category: "Payroll",
+        chatHistory,
+        comments: [
+          { author: "AI Assistant", content: "Service Request created successfully", timestamp: now }
+        ]
+      };
+      addTicket(newTicket);
+
+      addMessage({
+        role: "assistant",
+        content: `Service Request ${ticketId} created successfully.`,
+        type: "ticket",
+        ticketId: ticketId,
+        data: newTicket
+      });
+
+      await simulateTyping(1500);
+
+      // Create the incident
+      const incidentId = `INC${Math.floor(Math.random() * 90000000) + 10000000}`;
+      const newIncident = {
+        id: incidentId,
+        title: `Sensitive Payslip Access - Linked to ${ticketId}`,
+        description: `Incident created for sensitive payslip request: ${content}`,
+        status: "pending-approval",
+        priority: "critical",
+        assignee: "andrews@intelletica.com",
+        created: now,
+        updated: now,
+        category: "Security",
+        chatHistory,
+        relatedSR: ticketId,
+        timeline: [
+          { status: "Created", timestamp: now, description: `Incident created by AI Assistant (Linked to ${ticketId})` },
+          { status: "Routed", timestamp: now, description: "Routed to IT Support Engineer for approval" }
+        ]
+      };
+      addIncident(newIncident);
+
+      addMessage({
+        role: "assistant",
+        content: `Incident ${incidentId} created and routed to IT Support Engineer dashboard. Awaiting approval.`,
+        type: "incident",
+        ticketId: incidentId,
+        data: newIncident
+      });
+
+      return; // Prevent further handling for this message
+    }
+    // --- End Payslip Flow ---
+
+    // Handle other types of requests
     if (isPayrollRequest || isInstallRequest) {
       // Step 2: AI generates SR Ticket
       addMessage({
