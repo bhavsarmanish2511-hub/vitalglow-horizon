@@ -59,7 +59,12 @@ export default function SupportDashboard() {
       type: 'incident' as const,
       createdBy: 'james@fincompany.com' // Business user incidents
     }))
-  ];
+  ].sort((a, b) => {
+    // Sort by creation date (most recent first)
+    const dateA = new Date(a.created).getTime();
+    const dateB = new Date(b.created).getTime();
+    return dateB - dateA;
+  });
 
   // Filter incidents based on selected status
   const filteredIncidents = statusFilter === "all" 
@@ -126,7 +131,6 @@ export default function SupportDashboard() {
             Monitor tickets, incidents, and performance metrics
           </p>
         </div>
-        <NotificationPanel onNotificationClick={handleNotificationClick} />
       </div>
 
       {/* Metrics Grid */}

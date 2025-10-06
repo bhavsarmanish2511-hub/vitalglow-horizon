@@ -20,7 +20,10 @@ import {
   Mail,
   Link as LinkIcon,
   CheckCircle,
-  X
+  X,
+  BookOpen,
+  Database,
+  Lightbulb
 } from "lucide-react";
 import { Incident } from "@/contexts/TicketsContext";
 import { useToast } from "@/hooks/use-toast";
@@ -268,6 +271,137 @@ Support Team
                   </div>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Similar Incidents */}
+              <Card className="bg-muted/50">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Similar Incidents
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <p className="font-medium">INC298745 - Financial Report Access (Resolved)</p>
+                      <p className="text-muted-foreground text-xs">Similar sensitive data access request</p>
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium">INC287632 - Quarterly Report Request (Resolved)</p>
+                      <p className="text-muted-foreground text-xs">Manager approval required</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* SOPs */}
+              <Card className="bg-muted/50">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Standard Operating Procedures (SOPs)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <p className="font-medium">SOP-001: Sensitive Data Access Protocol</p>
+                      <p className="text-muted-foreground text-xs">1. Verify user authorization</p>
+                      <p className="text-muted-foreground text-xs">2. Obtain manager approval</p>
+                      <p className="text-muted-foreground text-xs">3. Provide secure download link</p>
+                      <p className="text-muted-foreground text-xs">4. Log access in timeline</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* MELT Data */}
+              <Card className="bg-muted/50">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Database className="h-4 w-4" />
+                    MELT Data (Metrics, Events, Logs, Traces)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Request Time:</span>
+                      <span className="font-medium">{incident.created}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">User Location:</span>
+                      <span className="font-medium">Office Network (10.0.0.45)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Authentication:</span>
+                      <span className="font-medium text-success">Verified</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Access Level:</span>
+                      <span className="font-medium">Manager Approval Required</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recommended Fix from ServiceNow */}
+              <Card className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4" />
+                    Recommended Fix from ServiceNow
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <p className="font-medium">Automated Resolution Steps:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                      <li>Send approval email to manager (andrews@intelletica.com)</li>
+                      <li>Wait for manager approval confirmation</li>
+                      <li>Generate secure download link with 24-hour expiration</li>
+                      <li>Send link to requester via secure email</li>
+                      <li>Close ticket and update audit log</li>
+                    </ol>
+                    <Badge className="mt-2 bg-success/10 text-success">Confidence: 95%</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Worklog */}
+              <Card className="bg-muted/50">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Worklog
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="text-sm">
+                      <p className="font-medium">Initial Assessment - Support Engineer</p>
+                      <p className="text-muted-foreground text-xs">{incident.created}</p>
+                      <p className="text-muted-foreground mt-1">Ticket received and assigned for processing. Verifying user authorization and preparing approval request.</p>
+                    </div>
+                    {incident.emailSent && (
+                      <div className="text-sm">
+                        <p className="font-medium">Manager Approval Requested</p>
+                        <p className="text-muted-foreground text-xs">Email sent to andrews@intelletica.com</p>
+                        <p className="text-muted-foreground mt-1">Approval email dispatched to manager for authorization.</p>
+                      </div>
+                    )}
+                    {incident.approvalStatus === 'approved' && (
+                      <div className="text-sm">
+                        <p className="font-medium">Approval Received</p>
+                        <p className="text-muted-foreground text-xs">Manager approved the request</p>
+                        <p className="text-muted-foreground mt-1">Authorization granted. Proceeding with secure link generation.</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
               <Separator />
 

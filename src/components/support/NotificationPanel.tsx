@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,13 +12,41 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockNotifications, Notification } from '@/data/mockNotifications';
+import { useTickets } from '@/contexts/TicketsContext';
 
 interface NotificationPanelProps {
   onNotificationClick: (ticketId: string) => void;
 }
 
 export function NotificationPanel({ onNotificationClick }: NotificationPanelProps) {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const { incidents } = useTickets();
+
+  // Listen for approval notifications from incidents
+  useEffect(() => {
+    incidents.forEach(incident => {
+      if (incident.approvalStatus === 'approved') {
+        const approvalNotification: Notification = {
+          id: `approval-${incident.id}`,
+          title: 'Approval Received',
+          message: `Approval for ticket ${incident.id} has been received from andrews@intelletica.com`,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+          type: 'resolved',
+          ticketId: incident.id
+        };
+
+        // Check if notification already exists
+        setNotifications(prev => {
+          const exists = prev.some(n => n.id === approvalNotification.id);
+          if (!exists) {
+            return [approvalNotification, ...prev];
+          }
+          return prev;
+        });
+      }
+    });
+  }, [incidents]);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleNotificationClick = (notification: Notification) => {
