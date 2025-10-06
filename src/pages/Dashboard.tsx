@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Clock, FileText, AlertCircle, MessageSquare, CheckCircle } from "lucide
 import { TicketDetailsModal } from "@/components/tickets/TicketDetailsModal";
 import { IncidentDetailsModal } from "@/components/incidents/IncidentDetailsModal";
 import { useTickets } from "@/contexts/TicketsContext";
+import { useToast } from "@/hooks/use-toast";
+import { NotificationPanel } from "@/components/support/NotificationPanel";
 
 // Mock data
 const openServiceRequests = [
@@ -94,6 +96,23 @@ const Dashboard = () => {
   const { tickets, incidents } = useTickets();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [selectedIncident, setSelectedIncident] = useState<any>(null);
+  const { toast } = useToast();
+
+  // Listen for ticket resolution notifications
+  useEffect(() => {
+    const handleTicketResolved = (event: CustomEvent) => {
+      const { incidentId, srId, title } = event.detail;
+      toast({
+        title: "Ticket Resolved",
+        description: `Your request "${title}" has been resolved and closed.`,
+      });
+    };
+
+    window.addEventListener('ticket-resolved' as any, handleTicketResolved);
+    return () => {
+      window.removeEventListener('ticket-resolved' as any, handleTicketResolved);
+    };
+  }, [toast]);
   
   // Separate tickets and incidents by status - ONLY from context (real-time from chat)
   const openTickets = tickets.filter(t => t.status !== "resolved" && t.status !== "closed" && t.status !== "completed");

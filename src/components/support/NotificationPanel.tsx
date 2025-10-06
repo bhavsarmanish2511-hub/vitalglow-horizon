@@ -47,6 +47,35 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
       }
     });
   }, [incidents]);
+
+  // Listen for ticket resolution notifications (for business users)
+  useEffect(() => {
+    const handleTicketResolved = (event: CustomEvent) => {
+      const { incidentId, srId, title } = event.detail;
+      const resolutionNotification: Notification = {
+        id: `resolution-${incidentId}`,
+        title: 'Ticket Resolved',
+        message: `Your request "${title}" has been resolved and closed.`,
+        timestamp: new Date().toLocaleString(),
+        read: false,
+        type: 'resolved',
+        ticketId: srId || incidentId
+      };
+
+      setNotifications(prev => {
+        const exists = prev.some(n => n.id === resolutionNotification.id);
+        if (!exists) {
+          return [resolutionNotification, ...prev];
+        }
+        return prev;
+      });
+    };
+
+    window.addEventListener('ticket-resolved' as any, handleTicketResolved);
+    return () => {
+      window.removeEventListener('ticket-resolved' as any, handleTicketResolved);
+    };
+  }, []);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleNotificationClick = (notification: Notification) => {

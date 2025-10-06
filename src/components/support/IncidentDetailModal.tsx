@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -39,29 +39,45 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
   const [showEmailPreview, setShowEmailPreview] = useState(false);
   const [downloadLink, setDownloadLink] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
+  // Local state to track the current incident state
+  const [localIncident, setLocalIncident] = useState<Incident | null>(incident);
   const { toast } = useToast();
-  const { updateIncident } = useTickets();
+  const { updateIncident, updateTicket, getTicketById } = useTickets();
 
-  if (!incident) return null;
+  // Update local state when incident prop changes
+  useEffect(() => {
+    setLocalIncident(incident);
+  }, [incident]);
+
+  if (!localIncident) return null;
 
   const handleSendEmail = () => {
     setShowEmailPreview(true);
     
     // Update incident to mark email as sent
     const now = new Date().toLocaleString();
-    updateIncident(incident.id, {
+    const updatedTimeline = [
+      ...localIncident.timeline,
+      {
+        status: "Email Sent",
+        timestamp: now,
+        description: "Approval email sent to andrews@intelletica.com"
+      }
+    ];
+    
+    const updatedIncident = {
+      ...localIncident,
       emailSent: true,
-      timeline: [
-        ...incident.timeline,
-        {
-          status: "Email Sent",
-          timestamp: now,
-          description: "Approval email sent to andrews@intelletica.com"
-        }
-      ]
+      timeline: updatedTimeline
+    };
+    
+    setLocalIncident(updatedIncident);
+    updateIncident(localIncident.id, {
+      emailSent: true,
+      timeline: updatedTimeline
     });
 
-    // After 5 seconds, show approval notification
+    // After 5 seconds, show approval notification and update status
     setTimeout(() => {
       toast({
         title: "Approval Received",
@@ -69,21 +85,25 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
       });
 
       const approvalTime = new Date().toLocaleString();
-      updateIncident(incident.id, {
+      const approvedTimeline = [
+        ...updatedTimeline,
+        {
+          status: "Approved",
+          timestamp: approvalTime,
+          description: "Approval received from andrews@intelletica.com"
+        }
+      ];
+      
+      const finalIncident = {
+        ...updatedIncident,
+        approvalStatus: 'approved' as const,
+        timeline: approvedTimeline
+      };
+      
+      setLocalIncident(finalIncident);
+      updateIncident(localIncident.id, {
         approvalStatus: 'approved',
-        timeline: [
-          ...incident.timeline,
-          {
-            status: "Email Sent",
-            timestamp: now,
-            description: "Approval email sent to andrews@intelletica.com"
-          },
-          {
-            status: "Approved",
-            timestamp: approvalTime,
-            description: "Approval received from andrews@intelletica.com"
-          }
-        ]
+        timeline: approvedTimeline
       });
 
       setShowEmailPreview(false);
@@ -101,16 +121,25 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
     }
 
     const now = new Date().toLocaleString();
-    updateIncident(incident.id, {
+    const updatedTimeline = [
+      ...localIncident.timeline,
+      {
+        status: "Link Attached",
+        timestamp: now,
+        description: `Download link attached: ${downloadLink}`
+      }
+    ];
+    
+    const updatedIncident = {
+      ...localIncident,
       downloadLink: downloadLink,
-      timeline: [
-        ...incident.timeline,
-        {
-          status: "Link Attached",
-          timestamp: now,
-          description: `Download link attached: ${downloadLink}`
-        }
-      ]
+      timeline: updatedTimeline
+    };
+    
+    setLocalIncident(updatedIncident);
+    updateIncident(localIncident.id, {
+      downloadLink: downloadLink,
+      timeline: updatedTimeline
     });
 
     toast({
@@ -123,7 +152,7 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
   };
 
   const handleSendLinkToUser = () => {
-    if (!incident.downloadLink) {
+    if (!localIncident.downloadLink) {
       toast({
         title: "Error",
         description: "Please attach a download link first",
@@ -133,62 +162,101 @@ export function IncidentDetailModal({ incident, open, onClose }: IncidentDetailM
     }
 
     const now = new Date().toLocaleString();
-    updateIncident(incident.id, {
-      timeline: [
-        ...incident.timeline,
-        {
-          status: "Link Sent",
-          timestamp: now,
-          description: `Download link sent to ${incident.createdBy}`
-        }
-      ]
+    const updatedTimeline = [
+      ...localIncident.timeline,
+      {
+        status: "Link Sent",
+        timestamp: now,
+        description: `Download link sent to ${localIncident.createdBy}`
+      }
+    ];
+    
+    const updatedIncident = {
+      ...localIncident,
+      timeline: updatedTimeline
+    };
+    
+    setLocalIncident(updatedIncident);
+    updateIncident(localIncident.id, {
+      timeline: updatedTimeline
     });
 
     toast({
       title: "Link Sent",
-      description: `Download link has been sent to ${incident.createdBy}`,
+      description: `Download link has been sent to ${localIncident.createdBy}`,
     });
   };
 
   const handleCloseTicket = () => {
     const now = new Date().toLocaleString();
-    updateIncident(incident.id, {
+    const closedTimeline = [
+      ...localIncident.timeline,
+      {
+        status: "Closed",
+        timestamp: now,
+        description: "Ticket closed by Support Engineer"
+      }
+    ];
+    
+    updateIncident(localIncident.id, {
       status: 'closed',
       updated: now,
-      timeline: [
-        ...incident.timeline,
-        {
-          status: "Closed",
-          timestamp: now,
-          description: "Ticket closed by Support Engineer"
-        }
-      ]
+      timeline: closedTimeline
     });
+
+    // Close the linked SR ticket as well
+    if (localIncident.relatedSR) {
+      const linkedTicket = getTicketById(localIncident.relatedSR);
+      if (linkedTicket) {
+        updateTicket(localIncident.relatedSR, {
+          status: 'closed',
+          updated: now,
+          comments: [
+            ...(linkedTicket.comments || []),
+            {
+              author: 'Support Engineer',
+              content: `Ticket closed. Linked incident ${localIncident.id} has been resolved.`,
+              timestamp: now
+            }
+          ]
+        });
+      }
+    }
 
     toast({
       title: "Ticket Closed",
-      description: "The incident has been closed successfully",
+      description: "The incident and linked SR have been closed successfully",
     });
+
+    // Dispatch event for business user notification
+    window.dispatchEvent(new CustomEvent('ticket-resolved', { 
+      detail: { 
+        incidentId: localIncident.id, 
+        srId: localIncident.relatedSR,
+        createdBy: localIncident.createdBy,
+        title: localIncident.title
+      } 
+    }));
 
     onClose();
   };
 
   const emailContent = `
 To: andrews@intelletica.com
-Subject: Approval Required - ${incident.id}: ${incident.title}
+Subject: Approval Required - ${localIncident.id}: ${localIncident.title}
 
 Dear Manager,
 
 An incident requires your approval:
 
-Incident ID: ${incident.id}
-Title: ${incident.title}
-Priority: ${incident.priority}
-Created by: ${incident.createdBy}
-Created: ${incident.created}
+Incident ID: ${localIncident.id}
+Title: ${localIncident.title}
+Priority: ${localIncident.priority}
+Created by: ${localIncident.createdBy}
+Created: ${localIncident.created}
 
 Description:
-${incident.description}
+${localIncident.description}
 
 Please approve or reject this request.
 
@@ -203,30 +271,30 @@ Support Team
           <DialogHeader className="px-6 pt-6 pb-4">
             <div className="flex items-center gap-3 mb-2">
               <AlertCircle className="h-6 w-6 text-destructive" />
-              <DialogTitle className="text-2xl">{incident.title}</DialogTitle>
+              <DialogTitle className="text-2xl">{localIncident.title}</DialogTitle>
             </div>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <Badge variant="outline" className="font-mono">{incident.id}</Badge>
+              <Badge variant="outline" className="font-mono">{localIncident.id}</Badge>
               <Badge className={
-                incident.status === "closed" || incident.status === "resolved"
+                localIncident.status === "closed" || localIncident.status === "resolved"
                   ? "bg-success/10 text-success" 
-                  : incident.status === "escalated"
+                  : localIncident.status === "escalated"
                   ? "bg-destructive/10 text-destructive"
                   : "bg-primary/10 text-primary"
               }>
-                {incident.status}
+                {localIncident.status}
               </Badge>
               <Badge className={
-                incident.priority === "critical" || incident.priority === "high" 
+                localIncident.priority === "critical" || localIncident.priority === "high" 
                   ? "bg-destructive text-destructive-foreground" 
                   : "bg-warning text-warning-foreground"
               }>
-                {incident.priority} priority
+                {localIncident.priority} priority
               </Badge>
-              <Badge variant="outline">{incident.category}</Badge>
-              {incident.relatedSR && (
+              <Badge variant="outline">{localIncident.category}</Badge>
+              {localIncident.relatedSR && (
                 <Badge variant="outline" className="text-primary">
-                  Linked to: {incident.relatedSR}
+                  Linked to: {localIncident.relatedSR}
                 </Badge>
               )}
             </div>
@@ -237,7 +305,7 @@ Support Team
               {/* Description */}
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Description</h3>
-                <p className="text-muted-foreground">{incident.description}</p>
+                <p className="text-muted-foreground">{localIncident.description}</p>
               </div>
 
               {/* Basic Info */}
@@ -246,28 +314,28 @@ Support Team
                   <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground">Assigned To</p>
-                    <p className="font-medium text-foreground">{incident.assignee}</p>
+                    <p className="font-medium text-foreground">{localIncident.assignee}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground">Created By</p>
-                    <p className="font-medium text-foreground">{incident.createdBy}</p>
+                    <p className="font-medium text-foreground">{localIncident.createdBy}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground">Created</p>
-                    <p className="font-medium text-foreground">{incident.created}</p>
+                    <p className="font-medium text-foreground">{localIncident.created}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground">Last Updated</p>
-                    <p className="font-medium text-foreground">{incident.updated}</p>
+                    <p className="font-medium text-foreground">{localIncident.updated}</p>
                   </div>
                 </div>
               </div>
@@ -382,17 +450,17 @@ Support Team
                   <div className="space-y-3">
                     <div className="text-sm">
                       <p className="font-medium">Initial Assessment - Support Engineer</p>
-                      <p className="text-muted-foreground text-xs">{incident.created}</p>
+                      <p className="text-muted-foreground text-xs">{localIncident.created}</p>
                       <p className="text-muted-foreground mt-1">Ticket received and assigned for processing. Verifying user authorization and preparing approval request.</p>
                     </div>
-                    {incident.emailSent && (
+                    {localIncident.emailSent && (
                       <div className="text-sm">
                         <p className="font-medium">Manager Approval Requested</p>
                         <p className="text-muted-foreground text-xs">Email sent to andrews@intelletica.com</p>
                         <p className="text-muted-foreground mt-1">Approval email dispatched to manager for authorization.</p>
                       </div>
                     )}
-                    {incident.approvalStatus === 'approved' && (
+                    {localIncident.approvalStatus === 'approved' && (
                       <div className="text-sm">
                         <p className="font-medium">Approval Received</p>
                         <p className="text-muted-foreground text-xs">Manager approved the request</p>
@@ -406,9 +474,9 @@ Support Team
               <Separator />
 
               {/* Approval Status */}
-              {incident.approvalStatus && (
+              {localIncident.approvalStatus && (
                 <Card className={
-                  incident.approvalStatus === 'approved' 
+                  localIncident.approvalStatus === 'approved' 
                     ? "bg-success/5 border-success/20" 
                     : "bg-warning/5 border-warning/20"
                 }>
@@ -420,18 +488,18 @@ Support Team
                   </CardHeader>
                   <CardContent>
                     <Badge className={
-                      incident.approvalStatus === 'approved'
+                      localIncident.approvalStatus === 'approved'
                         ? "bg-success text-success-foreground"
                         : "bg-warning text-warning-foreground"
                     }>
-                      {incident.approvalStatus.toUpperCase()}
+                      {localIncident.approvalStatus.toUpperCase()}
                     </Badge>
                   </CardContent>
                 </Card>
               )}
 
               {/* Download Link */}
-              {incident.downloadLink && (
+              {localIncident.downloadLink && (
                 <Card className="bg-primary/5 border-primary/20">
                   <CardHeader>
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -441,19 +509,19 @@ Support Team
                   </CardHeader>
                   <CardContent>
                     <a 
-                      href={incident.downloadLink} 
+                      href={localIncident.downloadLink} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-primary hover:underline break-all"
                     >
-                      {incident.downloadLink}
+                      {localIncident.downloadLink}
                     </a>
                   </CardContent>
                 </Card>
               )}
 
               {/* Timeline */}
-              {incident.timeline && incident.timeline.length > 0 && (
+              {localIncident.timeline && localIncident.timeline.length > 0 && (
                 <Card className="bg-muted/50">
                   <CardHeader>
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -463,13 +531,13 @@ Support Team
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {incident.timeline.map((entry, index) => (
+                      {localIncident.timeline.map((entry, index) => (
                         <div key={index} className="flex gap-3 pb-3 border-b last:border-b-0">
                           <div className="flex flex-col items-center">
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <Clock className="h-4 w-4 text-primary" />
                             </div>
-                            {index < incident.timeline.length - 1 && (
+                            {index < localIncident.timeline.length - 1 && (
                               <div className="w-0.5 h-full bg-border mt-1" />
                             )}
                           </div>
@@ -487,14 +555,14 @@ Support Team
               )}
 
               {/* Chat History */}
-              {incident.chatHistory && incident.chatHistory.length > 0 && (
+              {localIncident.chatHistory && localIncident.chatHistory.length > 0 && (
                 <Card className="bg-muted/50">
                   <CardHeader>
                     <CardTitle className="text-sm">Chat History</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {incident.chatHistory.map((msg, index) => (
+                      {localIncident.chatHistory.map((msg, index) => (
                         <div
                           key={index}
                           className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -547,27 +615,27 @@ Support Team
           </ScrollArea>
 
           <div className="flex gap-3 px-6 py-4 border-t mt-0 bg-background flex-wrap">
-            {!incident.emailSent && incident.status !== 'closed' && (
+            {!localIncident.emailSent && localIncident.status !== 'closed' && (
               <Button onClick={handleSendEmail} className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Send Email to Manager
               </Button>
             )}
             
-            {incident.approvalStatus === 'approved' && !incident.downloadLink && !showLinkInput && (
+            {localIncident.approvalStatus === 'approved' && !localIncident.downloadLink && !showLinkInput && (
               <Button onClick={() => setShowLinkInput(true)} variant="outline" className="flex items-center gap-2">
                 <LinkIcon className="h-4 w-4" />
                 Attach Download Link
               </Button>
             )}
 
-            {incident.downloadLink && incident.status !== 'closed' && (
+            {localIncident.downloadLink && localIncident.status !== 'closed' && (
               <Button onClick={handleSendLinkToUser} className="flex items-center gap-2">
                 Send Link to User
               </Button>
             )}
 
-            {incident.approvalStatus === 'approved' && incident.downloadLink && incident.status !== 'closed' && (
+            {localIncident.approvalStatus === 'approved' && localIncident.downloadLink && localIncident.status !== 'closed' && (
               <Button onClick={handleCloseTicket} className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
                 Close Ticket

@@ -26,13 +26,11 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        {user?.role === 'support' && (
-          <NotificationPanel onNotificationClick={(ticketId) => {
-            setSelectedTicketId(ticketId);
-            // This will be handled by the support dashboard
-            window.dispatchEvent(new CustomEvent('ticket-selected', { detail: ticketId }));
-          }} />
-        )}
+        <NotificationPanel onNotificationClick={(ticketId) => {
+          setSelectedTicketId(ticketId);
+          // This will be handled by the respective dashboard
+          window.dispatchEvent(new CustomEvent('ticket-selected', { detail: ticketId }));
+        }} />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
