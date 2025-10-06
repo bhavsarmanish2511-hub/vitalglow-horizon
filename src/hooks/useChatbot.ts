@@ -77,12 +77,13 @@ export function useChatbot() {
                             lowerContent.includes("salary") ||
                             lowerContent.includes("pay check") ||
                             lowerContent.includes("payslip");
+    const isFinancialReportRequest = (lowerContent.includes("financial") && lowerContent.includes("report")) ||
+                                      (lowerContent.includes("finance") && lowerContent.includes("report"));
     const isInstallRequest = lowerContent.includes("install") || 
                             lowerContent.includes("application") ||
                             lowerContent.includes("software");
-    const isExpenseRequest = lowerContent.includes("expense") || 
-                            lowerContent.includes("report") ||
-                            lowerContent.includes("summary");
+    const isExpenseRequest = (lowerContent.includes("expense") || 
+                             lowerContent.includes("summary")) && !isFinancialReportRequest;
     const isAccessRequest = lowerContent.includes("access") || 
                            lowerContent.includes("database") ||
                            lowerContent.includes("permission");
@@ -94,7 +95,7 @@ export function useChatbot() {
                            lowerContent.includes("salary") ||
                            lowerContent.includes("finance") ||
                            lowerContent.includes("financial") ||
-                           lowerContent.includes("report") ||
+                           isFinancialReportRequest ||
                            lowerContent.includes("hr");
 
     // Generate SR Ticket ID with date format (no hyphens)
@@ -204,8 +205,8 @@ export function useChatbot() {
     }
     // --- End Payslip Flow ---
 
-    // Handle other types of requests
-    if (isPayrollRequest || isInstallRequest) {
+    // Handle financial report and other sensitive requests
+    if (isFinancialReportRequest || isPayrollRequest || isInstallRequest) {
       // Step 2: AI generates SR Ticket
       addMessage({
         role: "assistant",
@@ -217,14 +218,24 @@ export function useChatbot() {
 
       const newTicket = {
         id: ticketId,
-        title: isPayrollRequest ? "Payroll Information Request" : "Application Installation Request",
+        title: isFinancialReportRequest 
+          ? "Financial Report Access Request" 
+          : isPayrollRequest 
+            ? "Payroll Information Request" 
+            : "Application Installation Request",
         description: content,
         status: "open",
         priority: isSensitiveReq ? "high" : "medium",
-        assignee: isPayrollRequest ? "Support Engineer (martha@intelletica.com)" : "IT Support",
+        assignee: isFinancialReportRequest || isPayrollRequest 
+          ? "Support Engineer (martha@intelletica.com)" 
+          : "IT Support",
         created: now,
         updated: now,
-        category: isPayrollRequest ? "Payroll" : "Technical",
+        category: isFinancialReportRequest 
+          ? "Finance" 
+          : isPayrollRequest 
+            ? "Payroll" 
+            : "Technical",
         chatHistory,
         comments: [
           { author: "AI Assistant", content: "Service Request created successfully", timestamp: now }
@@ -259,7 +270,7 @@ export function useChatbot() {
         
         const newIncident = {
           id: incidentId,
-          title: `Sensitive ${isPayrollRequest ? 'Payroll' : 'Data'} Access - Linked to ${ticketId}`,
+          title: `Sensitive ${isFinancialReportRequest ? 'Financial Report' : isPayrollRequest ? 'Payroll' : 'Data'} Access - Linked to ${ticketId}`,
           description: `Incident created for sensitive request: ${content}`,
           status: "pending-approval",
           priority: "critical",
