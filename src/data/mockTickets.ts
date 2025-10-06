@@ -108,7 +108,7 @@ export const mockTickets: Ticket[] = [
     ]
   },
   {
-    id: 'INC-102',
+    id: 'INC102456',
     title: 'VPN Connection Issues',
     description: 'User unable to connect to company VPN from remote location',
     status: 'new',
@@ -121,7 +121,7 @@ export const mockTickets: Ticket[] = [
     type: 'incident'
   },
   {
-    id: 'INC-103',
+    id: 'INC103789',
     title: 'Email Sync Problem',
     description: 'Outlook not syncing emails for the past 2 hours',
     status: 'waiting-for-user',
@@ -134,7 +134,7 @@ export const mockTickets: Ticket[] = [
     type: 'incident'
   },
   {
-    id: 'INC-104',
+    id: 'INC104321',
     title: 'Database Performance Degradation',
     description: 'Production database showing slow query response times',
     status: 'escalated',
@@ -147,7 +147,7 @@ export const mockTickets: Ticket[] = [
     type: 'incident'
   },
   {
-    id: 'INC-105',
+    id: 'INC105654',
     title: 'Application Server Timeout',
     description: 'Application server experiencing timeout errors during peak hours',
     status: 'resolved',

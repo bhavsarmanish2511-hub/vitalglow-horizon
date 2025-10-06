@@ -90,11 +90,11 @@ export function useChatbot() {
                            lowerContent.includes("incident") ||
                            lowerContent.includes("check");
 
-    // Generate SR Ticket ID with date format
+    // Generate SR Ticket ID with date format (no hyphens)
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
     const srNumber = Math.floor(Math.random() * 900) + 100;
-    const ticketId = `SR-${dateStr}-${srNumber}`;
+    const ticketId = `SR${dateStr}${srNumber}`;
     const now = new Date().toLocaleString();
     const chatHistory = getChatHistory();
 

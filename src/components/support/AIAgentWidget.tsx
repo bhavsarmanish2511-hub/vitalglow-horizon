@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { useTickets } from '@/contexts/TicketsContext';
+import { mockTickets } from '@/data/mockTickets';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -19,6 +21,7 @@ const quickPrompts = [
 ];
 
 export function AIAgentWidget() {
+  const { incidents } = useTickets();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -28,6 +31,9 @@ export function AIAgentWidget() {
     }
   ]);
   const [input, setInput] = useState('');
+
+  // Get all incidents (mock + user-created)
+  const allIncidents = [...mockTickets.filter(t => t.type === 'incident'), ...incidents];
 
   const handlePromptClick = (prompt: string) => {
     handleSend(prompt);
@@ -51,11 +57,27 @@ export function AIAgentWidget() {
       let aiResponse = '';
       
       if (messageText.toLowerCase().includes('assigned tickets')) {
-        aiResponse = 'You have 3 assigned tickets today:\n\n1. INC-001 (Critical): Sensitive Payroll Data Access\n2. SR-102 (High): VPN Connection Issues\n3. SR-103 (Medium): Email Sync Problem\n\nTotal estimated resolution time: 2.5 hours';
+        // Get actual assigned incidents
+        const assignedIncidents = allIncidents.slice(0, 5);
+        const ticketCount = assignedIncidents.length;
+        
+        if (ticketCount === 0) {
+          aiResponse = 'You currently have no assigned incidents.';
+        } else {
+          aiResponse = `You have ${ticketCount} assigned ${ticketCount === 1 ? 'ticket' : 'tickets'} today:\n\n`;
+          assignedIncidents.forEach((ticket, index) => {
+            const priorityText = ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1);
+            aiResponse += `${index + 1}. ${ticket.id} (${priorityText}): ${ticket.title}\n`;
+          });
+          
+          // Calculate estimated resolution time (mock calculation)
+          const totalHours = ticketCount * 0.8;
+          aiResponse += `\nTotal estimated resolution time: ${totalHours.toFixed(1)} hours`;
+        }
       } else if (messageText.toLowerCase().includes('recurring issues')) {
         aiResponse = 'Top 3 recurring issues this week:\n\n1. VPN connectivity (12 tickets) - Average resolution: 45min\n2. Email sync problems (8 tickets) - Average resolution: 30min\n3. Software license requests (6 tickets) - Average resolution: 2 hours';
       } else if (messageText.toLowerCase().includes('unassigned')) {
-        aiResponse = 'There are currently 2 unassigned tickets:\n\n1. SR-106 (Low): Printer configuration request\n2. SR-107 (Medium): Password reset request\n\nBoth created within the last hour.';
+        aiResponse = 'There are currently 2 unassigned tickets:\n\n1. SR106 (Low): Printer configuration request\n2. SR107 (Medium): Password reset request\n\nBoth created within the last hour.';
       } else {
         aiResponse = 'I understand your request. Let me help you with that. For specific ticket information, please use one of the quick prompts or ask about assigned tickets, recurring issues, or unassigned tickets.';
       }
