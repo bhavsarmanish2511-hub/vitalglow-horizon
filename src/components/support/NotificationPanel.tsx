@@ -13,37 +13,61 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockNotifications, Notification } from '@/data/mockNotifications';
 import { useTickets } from '@/contexts/TicketsContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NotificationPanelProps {
   onNotificationClick: (ticketId: string) => void;
 }
 
 export function NotificationPanel({ onNotificationClick }: NotificationPanelProps) {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const { user } = useAuth();
+  const userRole = user?.role || 'business';
+  const storageKey = `notifications_${user?.email || 'guest'}`;
+  
+  // Load notifications from localStorage on mount
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const stored = localStorage.getItem(storageKey);
+    return stored ? JSON.parse(stored) : mockNotifications;
+  });
+  
   const { incidents } = useTickets();
 
-  // Listen for new incidents (for support engineer)
+  // Persist notifications to localStorage whenever they change
   useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(notifications));
+  }, [notifications, storageKey]);
+
+  // Listen for new incidents (for support engineer ONLY)
+  useEffect(() => {
+    if (userRole !== 'support') return;
+
     const handleNewIncident = (event: CustomEvent) => {
       const { incident } = event.detail;
-      const newNotification: Notification = {
-        id: `incident-${incident.id}-${Date.now()}`,
-        title: 'New Incident Assigned',
-        message: `${incident.id}: ${incident.title} has been assigned to you`,
-        timestamp: new Date().toLocaleString(),
-        read: false,
-        type: 'assignment',
-        ticketId: incident.id
-      };
-
-      setNotifications(prev => [newNotification, ...prev]);
+      const notificationId = `incident-${incident.id}-${Date.now()}`;
+      
+      // Check if notification already exists to prevent duplicates
+      setNotifications(prev => {
+        const exists = prev.some(n => n.ticketId === incident.id && n.type === 'assignment');
+        if (exists) return prev;
+        
+        const newNotification: Notification = {
+          id: notificationId,
+          title: 'New Incident Assigned',
+          message: `${incident.id}: ${incident.title} has been assigned to you`,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+          type: 'assignment',
+          ticketId: incident.id
+        };
+        return [newNotification, ...prev];
+      });
     };
 
     window.addEventListener('new-incident' as any, handleNewIncident);
     return () => {
       window.removeEventListener('new-incident' as any, handleNewIncident);
     };
-  }, []);
+  }, [userRole]);
 
   // Listen for support engineer actions (for business user)
   useEffect(() => {
@@ -68,51 +92,70 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
     };
   }, []);
 
-  // Listen for ticket/incident creation (for business user)
+  // Listen for ticket/incident creation (for business user ONLY)
   useEffect(() => {
+    if (userRole !== 'business') return;
+
     const handleTicketCreated = (event: CustomEvent) => {
       const { ticket, type } = event.detail;
-      const creationNotification: Notification = {
-        id: `created-${ticket.id}-${Date.now()}`,
-        title: `${type === 'incident' ? 'Incident' : 'Service Request'} Created`,
-        message: `${ticket.id}: ${ticket.title} has been created`,
-        timestamp: new Date().toLocaleString(),
-        read: false,
-        type: 'assignment',
-        ticketId: ticket.id
-      };
-
-      setNotifications(prev => [creationNotification, ...prev]);
+      const notificationId = `created-${ticket.id}-${Date.now()}`;
+      
+      // Check if notification already exists to prevent duplicates
+      setNotifications(prev => {
+        const exists = prev.some(n => n.ticketId === ticket.id && n.title.includes('Created'));
+        if (exists) return prev;
+        
+        const creationNotification: Notification = {
+          id: notificationId,
+          title: `${type === 'incident' ? 'Incident' : 'Service Request'} Created`,
+          message: `${ticket.id}: ${ticket.title} has been created`,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+          type: 'assignment',
+          ticketId: ticket.id
+        };
+        return [creationNotification, ...prev];
+      });
     };
 
     window.addEventListener('ticket-created' as any, handleTicketCreated);
     return () => {
       window.removeEventListener('ticket-created' as any, handleTicketCreated);
     };
-  }, []);
+  }, [userRole]);
 
-  // Listen for ticket resolution notifications (for business users)
+  // Listen for ticket resolution notifications (for business users ONLY)
   useEffect(() => {
+    if (userRole !== 'business') return;
+
     const handleTicketResolved = (event: CustomEvent) => {
       const { incidentId, srId, title } = event.detail;
-      const resolutionNotification: Notification = {
-        id: `resolution-${incidentId || srId}-${Date.now()}`,
-        title: 'Ticket Resolved',
-        message: `Your request "${title}" has been resolved and closed.`,
-        timestamp: new Date().toLocaleString(),
-        read: false,
-        type: 'resolved',
-        ticketId: srId || incidentId
-      };
-
-      setNotifications(prev => [resolutionNotification, ...prev]);
+      const notificationId = `resolution-${incidentId || srId}-${Date.now()}`;
+      
+      // Check if notification already exists to prevent duplicates
+      setNotifications(prev => {
+        const ticketId = srId || incidentId;
+        const exists = prev.some(n => n.ticketId === ticketId && n.type === 'resolved');
+        if (exists) return prev;
+        
+        const resolutionNotification: Notification = {
+          id: notificationId,
+          title: 'Ticket Resolved',
+          message: `Your request "${title}" has been resolved and closed.`,
+          timestamp: new Date().toLocaleString(),
+          read: false,
+          type: 'resolved',
+          ticketId: ticketId
+        };
+        return [resolutionNotification, ...prev];
+      });
     };
 
     window.addEventListener('ticket-resolved' as any, handleTicketResolved);
     return () => {
       window.removeEventListener('ticket-resolved' as any, handleTicketResolved);
     };
-  }, []);
+  }, [userRole]);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleNotificationClick = (notification: Notification) => {
