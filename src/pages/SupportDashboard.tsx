@@ -100,6 +100,18 @@ export default function SupportDashboard() {
     }
   };
 
+  // Dispatch custom event for notification panel to navigate
+  useEffect(() => {
+    const handleNotificationClicked = (event: CustomEvent) => {
+      handleNotificationClick(event.detail);
+    };
+
+    window.addEventListener('notification-clicked' as any, handleNotificationClicked);
+    return () => {
+      window.removeEventListener('notification-clicked' as any, handleNotificationClicked);
+    };
+  }, [allIncidents]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'resolved':

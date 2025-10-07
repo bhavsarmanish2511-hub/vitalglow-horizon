@@ -121,8 +121,11 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
       prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
     );
     
-    // Navigate to ticket if available
+    // Dispatch event to open the ticket/incident modal
     if (notification.ticketId) {
+      window.dispatchEvent(new CustomEvent('notification-clicked', { 
+        detail: notification.ticketId 
+      }));
       onNotificationClick(notification.ticketId);
     }
   };

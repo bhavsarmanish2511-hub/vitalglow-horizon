@@ -260,6 +260,11 @@ export function useChatbot() {
       // Update ticket with related incident
       updateTicket(ticketId, { relatedIncident: incidentId });
 
+      // Dispatch event for support engineer notification
+      window.dispatchEvent(new CustomEvent('new-incident', { 
+        detail: { incident: newIncident } 
+      }));
+
       addMessage({
         role: "assistant",
         content: `Incident ${incidentId} created and routed to IT Support Engineer dashboard. Awaiting approval.`,
@@ -355,6 +360,11 @@ export function useChatbot() {
         
         addIncident(newIncident);
         updateTicket(ticketId, { relatedIncident: incidentId });
+        
+        // Dispatch event for support engineer notification
+        window.dispatchEvent(new CustomEvent('new-incident', { 
+          detail: { incident: newIncident } 
+        }));
         
         addMessage({
           role: "assistant",
