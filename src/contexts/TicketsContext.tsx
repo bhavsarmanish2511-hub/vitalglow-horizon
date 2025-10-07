@@ -189,10 +189,21 @@ export const TicketsProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const addTicket = (ticket: Ticket) => {
     setTickets((prev) => [ticket, ...prev]);
+    // Dispatch event for notification
+    window.dispatchEvent(new CustomEvent('ticket-created', { 
+      detail: { ticket, type: 'ticket' } 
+    }));
   };
 
   const addIncident = (incident: Incident) => {
     setIncidents((prev) => [incident, ...prev]);
+    // Dispatch events for notifications
+    window.dispatchEvent(new CustomEvent('ticket-created', { 
+      detail: { ticket: incident, type: 'incident' } 
+    }));
+    window.dispatchEvent(new CustomEvent('new-incident', { 
+      detail: { incident } 
+    }));
   };
 
   const updateTicket = (id: string, updates: Partial<Ticket>) => {

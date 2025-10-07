@@ -16,6 +16,8 @@ import NotFound from "./pages/NotFound";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 import { AIAgentWidget } from "@/components/support/AIAgentWidget";
+import { handleNotificationClickHelper } from "./pages/Dashboard";
+import { useState } from "react";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,56 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
   
   return <>{children}</>;
+}
+
+// Dashboard wrapper with notification handler
+function DashboardWrapper() {
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [selectedIncident, setSelectedIncident] = useState<any>(null);
+  
+  return (
+    <div className="min-h-screen flex flex-col w-full bg-background">
+      <DashboardHeader 
+        onNotificationClick={(ticketId) => {
+          // This will be handled by Dashboard component's effect
+          window.dispatchEvent(new CustomEvent('notification-clicked', { detail: ticketId }));
+        }} 
+      />
+      <main className="flex-1 p-6">
+        <div className="max-w-7xl mx-auto">
+          <Routes>
+            <Route index element={<Dashboard />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="tickets" element={<Tickets />} />
+            <Route path="incidents" element={<Incidents />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </div>
+      </main>
+      <ChatbotWidget />
+    </div>
+  );
+}
+
+// Support Dashboard wrapper with notification handler
+function SupportDashboardWrapper() {
+  return (
+    <div className="min-h-screen flex flex-col w-full bg-background">
+      <DashboardHeader 
+        onNotificationClick={(ticketId) => {
+          // This will be handled by SupportDashboard component's effect
+          window.dispatchEvent(new CustomEvent('notification-clicked', { detail: ticketId }));
+        }} 
+      />
+      <main className="flex-1 p-6">
+        <div className="max-w-7xl mx-auto">
+          <SupportDashboard />
+        </div>
+      </main>
+      <AIAgentWidget />
+    </div>
+  );
 }
 
 const App = () => (
@@ -47,22 +99,7 @@ const App = () => (
                 path="/dashboard/*"
                 element={
                   <ProtectedRoute>
-                    <div className="min-h-screen flex flex-col w-full bg-background">
-                      <DashboardHeader />
-                      <main className="flex-1 p-6">
-                        <div className="max-w-7xl mx-auto">
-                          <Routes>
-                            <Route index element={<Dashboard />} />
-                            <Route path="reports" element={<Reports />} />
-                            <Route path="tickets" element={<Tickets />} />
-                            <Route path="incidents" element={<Incidents />} />
-                            <Route path="settings" element={<Settings />} />
-                            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                          </Routes>
-                        </div>
-                      </main>
-                      <ChatbotWidget />
-                    </div>
+                    <DashboardWrapper />
                   </ProtectedRoute>
                 }
               />
@@ -72,15 +109,7 @@ const App = () => (
                 path="/support-dashboard"
                 element={
                   <ProtectedRoute>
-                    <div className="min-h-screen flex flex-col w-full bg-background">
-                      <DashboardHeader />
-                      <main className="flex-1 p-6">
-                        <div className="max-w-7xl mx-auto">
-                          <SupportDashboard />
-                        </div>
-                      </main>
-                      <AIAgentWidget />
-                    </div>
+                    <SupportDashboardWrapper />
                   </ProtectedRoute>
                 }
               />

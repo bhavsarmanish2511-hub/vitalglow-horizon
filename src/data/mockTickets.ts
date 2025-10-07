@@ -36,6 +36,90 @@ export interface Ticket {
 
 export const mockTickets: Ticket[] = [
   {
+    id: 'INC325678',
+    title: 'Account Locked - Multiple Incorrect Login Attempts',
+    description: 'User account has been locked after 5 consecutive failed login attempts. User requires password reset to regain access to their account.',
+    status: 'in-progress',
+    priority: 'high',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'sarah.johnson@company.com',
+    created: '2024-01-15 16:20',
+    updated: '2024-01-15 16:25',
+    category: 'Security',
+    type: 'incident',
+    slaTimer: '3h 40m remaining',
+    similarIncidents: [
+      {
+        id: 'INC-945',
+        title: 'Account Lockout - Failed Login',
+        resolution: 'Reset password via secure link and verified user identity through secondary email'
+      },
+      {
+        id: 'INC-823',
+        title: 'Multiple Failed Authentication Attempts',
+        resolution: 'Unlocked account after identity verification and sent password reset instructions'
+      },
+      {
+        id: 'INC-756',
+        title: 'User Lockout Due to Password Policy',
+        resolution: 'Provided password reset link with temporary access code'
+      }
+    ],
+    sops: [
+      {
+        title: 'Account Lockout Resolution Protocol',
+        confidence: 97,
+        steps: [
+          'Verify user identity through alternative authentication method (email/phone)',
+          'Check security logs for suspicious activity patterns',
+          'Generate secure password reset link with 24-hour expiration',
+          'Send password reset link to registered email address',
+          'Monitor account for successful password reset completion',
+          'Update incident worklog with resolution status'
+        ]
+      },
+      {
+        title: 'Security Incident Response - Account Access',
+        confidence: 89,
+        steps: [
+          'Review failed login attempts timeline and source IPs',
+          'Confirm no unauthorized access occurred',
+          'Initiate password reset workflow',
+          'Enable additional security monitoring for 48 hours',
+          'Notify user via secure channel'
+        ]
+      }
+    ],
+    meltData: {
+      cpuUsage: 32,
+      memoryUsage: 48,
+      errorRate: 0.15
+    },
+    recommendedFix: 'Execute Account Lockout Resolution Protocol. Generate and send password reset link to user\'s verified email address. Estimated resolution time: 15 minutes. System will auto-update worklog upon successful password reset.',
+    worklog: [
+      {
+        timestamp: '2024-01-15 16:20',
+        action: 'Incident created - Account locked after 5 failed login attempts',
+        author: 'System'
+      },
+      {
+        timestamp: '2024-01-15 16:22',
+        action: 'Assigned to Support Engineer for resolution',
+        author: 'System'
+      },
+      {
+        timestamp: '2024-01-15 16:23',
+        action: 'Identity verification initiated via secondary email',
+        author: 'AI Assistant'
+      },
+      {
+        timestamp: '2024-01-15 16:25',
+        action: 'SOP matched with 97% confidence - Ready to execute password reset',
+        author: 'AI Assistant'
+      }
+    ]
+  },
+  {
     id: 'INC324511',
     title: 'Sensitive Payroll Data Access - Incident from Business User',
     description: 'Incident created for accessing sensitive payroll information requested by james@fincompany.com',

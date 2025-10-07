@@ -12,12 +12,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationPanel } from "@/components/support/NotificationPanel";
-import { useState } from "react";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  onNotificationClick?: (ticketId: string) => void;
+}
+
+export function DashboardHeader({ onNotificationClick }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   return (
     <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
@@ -26,11 +28,9 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-4">
-        <NotificationPanel onNotificationClick={(ticketId) => {
-          setSelectedTicketId(ticketId);
-          // This will be handled by the respective dashboard
-          window.dispatchEvent(new CustomEvent('ticket-selected', { detail: ticketId }));
-        }} />
+        {onNotificationClick && (
+          <NotificationPanel onNotificationClick={onNotificationClick} />
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

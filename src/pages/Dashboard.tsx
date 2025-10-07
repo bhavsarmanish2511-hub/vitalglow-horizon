@@ -8,7 +8,23 @@ import { TicketDetailsModal } from "@/components/tickets/TicketDetailsModal";
 import { IncidentDetailsModal } from "@/components/incidents/IncidentDetailsModal";
 import { useTickets } from "@/contexts/TicketsContext";
 import { useToast } from "@/hooks/use-toast";
-import { NotificationPanel } from "@/components/support/NotificationPanel";
+
+export const handleNotificationClickHelper = (
+  ticketId: string,
+  tickets: any[],
+  incidents: any[],
+  setSelectedTicket: (ticket: any) => void,
+  setSelectedIncident: (incident: any) => void
+) => {
+  const ticket = tickets.find(t => t.id === ticketId);
+  const incident = incidents.find(i => i.id === ticketId);
+  
+  if (ticket) {
+    setSelectedTicket(ticket);
+  } else if (incident) {
+    setSelectedIncident(incident);
+  }
+};
 
 const Dashboard = () => {
   const { tickets, incidents } = useTickets();
@@ -30,6 +46,18 @@ const Dashboard = () => {
       window.removeEventListener('ticket-resolved' as any, handleTicketResolved);
     };
   }, [toast]);
+
+  // Listen for notification clicks from header
+  useEffect(() => {
+    const handleNotificationClicked = (event: CustomEvent) => {
+      handleNotificationClick(event.detail);
+    };
+
+    window.addEventListener('notification-clicked' as any, handleNotificationClicked);
+    return () => {
+      window.removeEventListener('notification-clicked' as any, handleNotificationClicked);
+    };
+  }, [tickets, incidents]);
   
   const openTickets = tickets.filter(t => t.status !== "resolved" && t.status !== "closed" && t.status !== "completed");
   const openIncidentsData = incidents.filter(i => i.status !== "resolved" && i.status !== "closed");
@@ -47,6 +75,10 @@ const Dashboard = () => {
     { label: "Check Incident Status", prompt: "What's the status of my incident?" },
     { label: "Request Database Access", prompt: "I need access to the finance database" }
   ];
+
+  const handleNotificationClick = (ticketId: string) => {
+    handleNotificationClickHelper(ticketId, tickets, incidents, setSelectedTicket, setSelectedIncident);
+  };
 
   return (
     <div className="space-y-6">

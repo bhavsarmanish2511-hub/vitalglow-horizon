@@ -5,7 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MetricCard } from '@/components/support/MetricCard';
 import { TicketDetailView } from '@/components/support/TicketDetailView';
 import { IncidentDetailModal } from '@/components/support/IncidentDetailModal';
-import { NotificationPanel } from '@/components/support/NotificationPanel';
 import { mockTickets, Ticket } from '@/data/mockTickets';
 import { useTickets, Incident } from '@/contexts/TicketsContext';
 import { 
@@ -41,6 +40,18 @@ export default function SupportDashboard() {
     }
     setLastIncidentCount(newIncidents.length);
   }, [incidents, lastIncidentCount, toast]);
+
+  // Listen for notification clicks from header
+  useEffect(() => {
+    const handleNotificationClicked = (event: CustomEvent) => {
+      handleNotificationClick(event.detail);
+    };
+
+    window.addEventListener('notification-clicked' as any, handleNotificationClicked);
+    return () => {
+      window.removeEventListener('notification-clicked' as any, handleNotificationClicked);
+    };
+  }, []);
 
   const metrics = [
     { title: 'Open Tickets', value: '23', change: 12, icon: TicketIcon, color: 'text-primary' },
@@ -124,13 +135,11 @@ export default function SupportDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Support Engineer Dashboard</h1>
-          <p className="text-muted-foreground">
-            Monitor tickets, incidents, and performance metrics
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Support Engineer Dashboard</h1>
+        <p className="text-muted-foreground">
+          Monitor tickets, incidents, and performance metrics
+        </p>
       </div>
 
       {/* Metrics Grid */}

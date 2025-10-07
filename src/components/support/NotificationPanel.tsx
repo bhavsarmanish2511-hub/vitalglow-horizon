@@ -22,38 +22,81 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const { incidents } = useTickets();
 
-  // Listen for approval notifications from incidents
+  // Listen for new incidents (for support engineer)
   useEffect(() => {
-    incidents.forEach(incident => {
-      if (incident.approvalStatus === 'approved') {
-        const approvalNotification: Notification = {
-          id: `approval-${incident.id}`,
-          title: 'Approval Received',
-          message: `Approval for ticket ${incident.id} has been received from andrews@intelletica.com`,
-          timestamp: new Date().toLocaleString(),
-          read: false,
-          type: 'resolved',
-          ticketId: incident.id
-        };
+    const handleNewIncident = (event: CustomEvent) => {
+      const { incident } = event.detail;
+      const newNotification: Notification = {
+        id: `incident-${incident.id}-${Date.now()}`,
+        title: 'New Incident Assigned',
+        message: `${incident.id}: ${incident.title} has been assigned to you`,
+        timestamp: new Date().toLocaleString(),
+        read: false,
+        type: 'assignment',
+        ticketId: incident.id
+      };
 
-        // Check if notification already exists
-        setNotifications(prev => {
-          const exists = prev.some(n => n.id === approvalNotification.id);
-          if (!exists) {
-            return [approvalNotification, ...prev];
-          }
-          return prev;
-        });
-      }
-    });
-  }, [incidents]);
+      setNotifications(prev => [newNotification, ...prev]);
+    };
+
+    window.addEventListener('new-incident' as any, handleNewIncident);
+    return () => {
+      window.removeEventListener('new-incident' as any, handleNewIncident);
+    };
+  }, []);
+
+  // Listen for support engineer actions (for business user)
+  useEffect(() => {
+    const handleSupportAction = (event: CustomEvent) => {
+      const { ticketId, action, message } = event.detail;
+      const actionNotification: Notification = {
+        id: `action-${ticketId}-${Date.now()}`,
+        title: action,
+        message: message,
+        timestamp: new Date().toLocaleString(),
+        read: false,
+        type: 'update',
+        ticketId: ticketId
+      };
+
+      setNotifications(prev => [actionNotification, ...prev]);
+    };
+
+    window.addEventListener('support-action' as any, handleSupportAction);
+    return () => {
+      window.removeEventListener('support-action' as any, handleSupportAction);
+    };
+  }, []);
+
+  // Listen for ticket/incident creation (for business user)
+  useEffect(() => {
+    const handleTicketCreated = (event: CustomEvent) => {
+      const { ticket, type } = event.detail;
+      const creationNotification: Notification = {
+        id: `created-${ticket.id}-${Date.now()}`,
+        title: `${type === 'incident' ? 'Incident' : 'Service Request'} Created`,
+        message: `${ticket.id}: ${ticket.title} has been created`,
+        timestamp: new Date().toLocaleString(),
+        read: false,
+        type: 'assignment',
+        ticketId: ticket.id
+      };
+
+      setNotifications(prev => [creationNotification, ...prev]);
+    };
+
+    window.addEventListener('ticket-created' as any, handleTicketCreated);
+    return () => {
+      window.removeEventListener('ticket-created' as any, handleTicketCreated);
+    };
+  }, []);
 
   // Listen for ticket resolution notifications (for business users)
   useEffect(() => {
     const handleTicketResolved = (event: CustomEvent) => {
       const { incidentId, srId, title } = event.detail;
       const resolutionNotification: Notification = {
-        id: `resolution-${incidentId}`,
+        id: `resolution-${incidentId || srId}-${Date.now()}`,
         title: 'Ticket Resolved',
         message: `Your request "${title}" has been resolved and closed.`,
         timestamp: new Date().toLocaleString(),
@@ -62,13 +105,7 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
         ticketId: srId || incidentId
       };
 
-      setNotifications(prev => {
-        const exists = prev.some(n => n.id === resolutionNotification.id);
-        if (!exists) {
-          return [resolutionNotification, ...prev];
-        }
-        return prev;
-      });
+      setNotifications(prev => [resolutionNotification, ...prev]);
     };
 
     window.addEventListener('ticket-resolved' as any, handleTicketResolved);
