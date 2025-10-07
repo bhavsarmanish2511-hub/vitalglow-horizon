@@ -23,6 +23,7 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
   const { user } = useAuth();
   const userRole = user?.role || 'business';
   const storageKey = `notifications_${user?.email || 'guest'}`;
+  const notifiedIncidentsKey = `notified_incidents_${user?.email || 'guest'}`;
   
   // Load notifications from localStorage on mount
   const [notifications, setNotifications] = useState<Notification[]>(() => {
@@ -31,6 +32,42 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
   });
   
   const { incidents } = useTickets();
+
+  // Check for new incidents on mount for support engineers
+  useEffect(() => {
+    if (userRole !== 'support') return;
+
+    const notifiedIncidents = JSON.parse(localStorage.getItem(notifiedIncidentsKey) || '[]');
+    
+    // Find incidents that haven't been notified yet
+    incidents.forEach(incident => {
+      if (!notifiedIncidents.includes(incident.id)) {
+        const notificationId = `incident-${incident.id}-${Date.now()}`;
+        
+        setNotifications(prev => {
+          const exists = prev.some(n => n.ticketId === incident.id && n.type === 'assignment');
+          if (exists) return prev;
+          
+          const newNotification: Notification = {
+            id: notificationId,
+            title: 'New Incident Assigned',
+            message: `${incident.id}: ${incident.title} has been assigned to you`,
+            timestamp: new Date().toLocaleString(),
+            read: false,
+            type: 'assignment',
+            ticketId: incident.id
+          };
+          return [newNotification, ...prev];
+        });
+
+        // Mark this incident as notified
+        notifiedIncidents.push(incident.id);
+      }
+    });
+
+    // Save notified incidents list
+    localStorage.setItem(notifiedIncidentsKey, JSON.stringify(notifiedIncidents));
+  }, [incidents, userRole, notifiedIncidentsKey]);
 
   // Persist notifications to localStorage whenever they change
   useEffect(() => {
@@ -44,6 +81,7 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
     const handleNewIncident = (event: CustomEvent) => {
       const { incident } = event.detail;
       const notificationId = `incident-${incident.id}-${Date.now()}`;
+      const notifiedIncidents = JSON.parse(localStorage.getItem(notifiedIncidentsKey) || '[]');
       
       // Check if notification already exists to prevent duplicates
       setNotifications(prev => {
@@ -59,6 +97,13 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
           type: 'assignment',
           ticketId: incident.id
         };
+        
+        // Mark this incident as notified
+        if (!notifiedIncidents.includes(incident.id)) {
+          notifiedIncidents.push(incident.id);
+          localStorage.setItem(notifiedIncidentsKey, JSON.stringify(notifiedIncidents));
+        }
+        
         return [newNotification, ...prev];
       });
     };
@@ -67,7 +112,7 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
     return () => {
       window.removeEventListener('new-incident' as any, handleNewIncident);
     };
-  }, [userRole]);
+  }, [userRole, notifiedIncidentsKey]);
 
   // Listen for support engineer actions (for business user)
   useEffect(() => {
