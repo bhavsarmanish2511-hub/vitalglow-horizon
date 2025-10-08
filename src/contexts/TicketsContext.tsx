@@ -24,6 +24,7 @@ export interface Ticket {
   chatHistory: ChatMessage[];
   comments?: Array<{ author: string; content: string; timestamp: string }>;
   resolution?: string; // Download link or resolution details
+  resolvedBy?: string; // Who resolved the ticket
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   relatedIncident?: string;
 }
@@ -45,6 +46,9 @@ export interface Incident {
   downloadLink?: string;
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   emailSent?: boolean;
+  isAIOnly?: boolean; // Flag for AI-only incidents that don't appear in support engineer view
+  resolution?: string;
+  resolvedBy?: string;
 }
 
 interface TicketsContextType {

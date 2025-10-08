@@ -61,13 +61,16 @@ export default function SupportDashboard() {
   }, []);
 
   // Combine mock tickets with incidents from Business User (real-time sync)
+  // Filter out AI-only incidents that should not appear in support engineer view
   const allIncidents = [
     ...mockTickets.filter(t => t.type === 'incident'),
-    ...incidents.map(inc => ({
-      ...inc,
-      type: 'incident' as const,
-      createdBy: 'james@fincompany.com' // Business user incidents
-    }))
+    ...incidents
+      .filter(inc => !inc.isAIOnly) // Exclude AI-only incidents
+      .map(inc => ({
+        ...inc,
+        type: 'incident' as const,
+        createdBy: 'james@fincompany.com' // Business user incidents
+      }))
   ];
 
   // Date filtering function

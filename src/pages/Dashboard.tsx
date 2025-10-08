@@ -70,7 +70,7 @@ const Dashboard = () => {
 
   // Updated Quick Actions
   const quickActions = [
-    { label: "Update Leave", prompt: "I want to update my leave" },
+    { label: "Password Unlock", prompt: "Password Unlock" },
     { label: "Check Incident Status", prompt: "What's the status of my incident?" },
     { label: "Access Payroll", prompt: "I need to access my payroll information" },
     { label: "Request Database Access", prompt: "I need access to the finance database" }

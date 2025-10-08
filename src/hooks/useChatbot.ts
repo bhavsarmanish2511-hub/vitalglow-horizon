@@ -34,8 +34,12 @@ export function useChatbot() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  // Leave flow state
-  const [awaitingLeaveDate, setAwaitingLeaveDate] = useState(false);
+  // Password unlock flow state
+  const [passwordUnlockFlow, setPasswordUnlockFlow] = useState<{
+    active: boolean;
+    incidentId?: string;
+    awaitingConfirmation?: boolean;
+  }>({ active: false });
 
   // Store chat history for ticket creation
   const getChatHistory = useCallback(() => {
@@ -72,68 +76,119 @@ export function useChatbot() {
     const lowerContent = content.toLowerCase();
     const isSensitive = isSensitiveRequest(content);
 
-    // --- LEAVE FLOW ---
-    const isLeaveRequest = lowerContent.includes("leave");
-
-    if (awaitingLeaveDate) {
-      const leaveDate = content.trim();
-      setAwaitingLeaveDate(false);
-
-      // Generate ticket ID
-      const today = new Date();
-      const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-      const srNumber = Math.floor(Math.random() * 900) + 100;
-      const ticketId = `SR${dateStr}${srNumber}`;
+    // --- PASSWORD UNLOCK FLOW ---
+    const isPasswordUnlockRequest = lowerContent.includes("password unlock");
+    
+    // Handle confirmation in password unlock flow
+    if (passwordUnlockFlow.active && passwordUnlockFlow.awaitingConfirmation) {
+      const isConfirmation = lowerContent.includes("yes") || 
+                            lowerContent.includes("able to login") || 
+                            lowerContent.includes("logged in") ||
+                            lowerContent.includes("working") ||
+                            lowerContent.includes("sure");
+      
+      if (isConfirmation && passwordUnlockFlow.incidentId) {
+        await simulateTyping(1500);
+        
+        addMessage({
+          role: "assistant",
+          content: "Thanks for confirming!",
+          type: "text"
+        });
+        
+        // Close the incident
+        updateTicket(passwordUnlockFlow.incidentId, { 
+          status: "resolved",
+          resolvedBy: "AI Assistant",
+          resolution: "Account unlocked successfully. User confirmed access restored."
+        });
+        
+        setPasswordUnlockFlow({ active: false });
+        return;
+      }
+    }
+    
+    // Handle initial password unlock request or "unable to login" message
+    if (isPasswordUnlockRequest || 
+        (passwordUnlockFlow.active && !passwordUnlockFlow.awaitingConfirmation)) {
+      
+      if (!passwordUnlockFlow.active) {
+        // First message - user clicked "Password Unlock"
+        setPasswordUnlockFlow({ active: true });
+        
+        addMessage({
+          role: "assistant",
+          content: "Hi! I'm here to help you unlock your account. Could you please describe the issue you're facing?",
+          type: "text"
+        });
+        return;
+      }
+      
+      // User has described the issue (e.g., "unable to login")
+      await simulateTyping(1500);
+      
+      addMessage({
+        role: "assistant",
+        content: "Sorry to hear that, let me check the issue.",
+        type: "text"
+      });
+      
+      await simulateTyping(4000);
+      
+      addMessage({
+        role: "assistant",
+        content: "Checking when was the last time password was updated, please hold on for few seconds.",
+        type: "text"
+      });
+      
+      await simulateTyping(4000);
+      
+      // Create incident (AI-only, no support engineer assignment)
+      const incidentId = `INC${Math.floor(Math.random() * 90000000) + 10000000}`;
       const now = new Date().toLocaleString();
       const chatHistory = getChatHistory();
-
-      addMessage({
-        role: "assistant",
-        content: `Thank you! Updating your leave for ${leaveDate}. Creating Service Request ${ticketId}...`,
-        type: "text"
-      });
-
-      await simulateTyping(1500);
-
-      const newTicket = {
-        id: ticketId,
-        title: "Leave Update Request",
-        description: `Leave update for ${leaveDate}`,
-        status: "completed",
+      
+      const newIncident = {
+        id: incidentId,
+        title: "Password Unlock Request",
+        description: `User unable to login - Password unlock request: ${content}`,
+        status: "in-progress",
         priority: "medium",
         assignee: "AI Assistant",
+        createdBy: "james@fincompany.com",
         created: now,
         updated: now,
-        category: "Leave",
+        category: "Account Access",
         chatHistory,
-        comments: [
-          { author: "AI Assistant", content: `Leave updated for ${leaveDate}`, timestamp: now }
+        relatedSR: "",
+        approvalStatus: 'approved' as const,
+        emailSent: false,
+        isAIOnly: true, // Flag to exclude from support engineer view
+        timeline: [
+          { status: "Created", timestamp: now, description: "Incident created by AI Assistant" },
+          { status: "In Progress", timestamp: now, description: "AI Assistant checking account status" }
         ]
       };
-
-      addTicket(newTicket);
-
+      
+      addIncident(newIncident);
+      
       addMessage({
         role: "assistant",
-        content: `Your leave for ${leaveDate} has been updated successfully. Service Request ${ticketId} created and closed.`,
-        type: "ticket",
-        ticketId: ticketId,
-        data: newTicket
-      });
-
-      return;
-    }
-
-    if (isLeaveRequest) {
-      setAwaitingLeaveDate(true);
-      addMessage({
-        role: "assistant",
-        content: "Please let me know which date I should apply leave for you.",
+        content: "Thanks for waiting, your account has been unlocked, could you please try logging in.",
         type: "text"
       });
+      
+      await simulateTyping(2000);
+      
+      setPasswordUnlockFlow({ 
+        active: true, 
+        incidentId: incidentId,
+        awaitingConfirmation: true 
+      });
+      
       return;
     }
-    // --- END LEAVE FLOW ---
+    // --- END PASSWORD UNLOCK FLOW ---
 
     // --- Other request types (existing logic, unchanged) ---
     const isPayslipRequest = lowerContent.includes("payslip") || lowerContent.includes("pay slip");
@@ -519,7 +574,7 @@ export function useChatbot() {
         type: "text"
       });
     }
-  }, [addMessage, simulateTyping, getChatHistory, addTicket, addIncident, updateTicket, awaitingLeaveDate]);
+  }, [addMessage, simulateTyping, getChatHistory, addTicket, addIncident, updateTicket, passwordUnlockFlow]);
 
   return {
     messages,
