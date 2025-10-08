@@ -22,7 +22,8 @@ import {
   TrendingUp,
   Edit,
   Send,
-  CheckCheck
+  CheckCheck,
+  Lightbulb
 } from "lucide-react";
 import { Ticket } from "@/data/mockTickets";
 import { useState } from "react";
@@ -422,7 +423,7 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
             )}
 
             {/* Recommended Fix */}
-            {localTicket.recommendedFix && (
+            {/* {localTicket.recommendedFix && (
               <Card className="bg-success/5 border-success/20">
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
@@ -441,7 +442,30 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
                   </Button>
                 </CardContent>
               </Card>
-            )}
+            )} */}
+
+            {/* Recommended Fix from ServiceNow */}
+              <Card className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4" />
+                    Recommended Fix from ServiceNow
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <p className="font-medium">Automated Resolution Steps:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                      <li>Verify user identity via registered email or phone number</li>
+                      <li>Send password reset link to verified contact</li>
+                      <li>Unlock account in Active Directory upon successful password reset</li>
+                      <li>Notify user of account unlock and provide security tips</li>
+                      <li>Log all actions in audit trail for compliance</li>
+                    </ol>
+                    <Badge className="mt-2 bg-success/10 text-success">Confidence: 97%</Badge>
+                  </div>
+                </CardContent>
+              </Card>
 
             {/* Worklog */}
             {localTicket.worklog && localTicket.worklog.length > 0 && (

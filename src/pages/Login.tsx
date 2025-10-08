@@ -52,7 +52,7 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border flex items-start gap-3">
+          {/* <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border flex items-start gap-3">
             <Shield className="h-5 w-5 text-primary mt-0.5" />
             <div>
               <p className="text-sm font-medium text-foreground">Secure SSO Access</p>
@@ -60,7 +60,7 @@ const Login = () => {
                 Single Sign-On authentication powered by enterprise security
               </p>
             </div>
-          </div>
+          </div> */}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
@@ -104,7 +104,7 @@ const Login = () => {
 
           <div className="mt-6 text-center">
             <p className="text-xs text-muted-foreground">
-              Protected by enterprise-grade security
+              Single Sign-On authentication powered by enterprise security
             </p>
           </div>
         </div>

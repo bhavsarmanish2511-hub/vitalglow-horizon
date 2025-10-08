@@ -38,7 +38,7 @@ export const mockTickets: Ticket[] = [
   {
     id: 'INC325678',
     title: 'Account Locked - Multiple Incorrect Login Attempts',
-    description: 'User account has been locked after 5 consecutive failed login attempts. User requires password reset to regain access to their account.',
+    description: 'User account has been locked after 3 consecutive failed login attempts. User requires password reset to regain access to their account.',
     status: 'in-progress',
     priority: 'high',
     assignee: 'martha@intelletica.com',
@@ -50,17 +50,17 @@ export const mockTickets: Ticket[] = [
     slaTimer: '3h 40m remaining',
     similarIncidents: [
       {
-        id: 'INC-945',
+        id: 'INC-945102',
         title: 'Account Lockout - Failed Login',
         resolution: 'Reset password via secure link and verified user identity through secondary email'
       },
       {
-        id: 'INC-823',
+        id: 'INC-823201',
         title: 'Multiple Failed Authentication Attempts',
         resolution: 'Unlocked account after identity verification and sent password reset instructions'
       },
       {
-        id: 'INC-756',
+        id: 'INC-756507',
         title: 'User Lockout Due to Password Policy',
         resolution: 'Provided password reset link with temporary access code'
       }
@@ -109,7 +109,7 @@ export const mockTickets: Ticket[] = [
       },
       {
         timestamp: '2024-01-15 16:23',
-        action: 'Identity verification initiated via secondary email',
+        action: 'Identity verification initiated via phone',
         author: 'AI Assistant'
       },
       {

@@ -18,11 +18,18 @@ import {
   Filter
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { addDays, startOfWeek, startOfMonth, startOfYear, isWithinInterval, parseISO } from 'date-fns';
 
 export default function SupportDashboard() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month' | 'year' | 'custom'>('all');
+  const [customStart, setCustomStart] = useState<string>('');
+  const [customEnd, setCustomEnd] = useState<string>('');
+
   const [lastIncidentCount, setLastIncidentCount] = useState(0);
   const { incidents } = useTickets();
   const { toast } = useToast();
@@ -53,15 +60,6 @@ export default function SupportDashboard() {
     };
   }, []);
 
-  const metrics = [
-    { title: 'Open Tickets', value: '23', change: 12, icon: TicketIcon, color: 'text-primary' },
-    { title: 'Tickets Resolved', value: '156', change: 8, icon: CheckCircle, color: 'text-success' },
-    { title: 'Avg Resolution Time', value: '2.5h', change: -15, icon: Clock, color: 'text-warning' },
-    { title: 'Customer Satisfaction', value: '4.8', change: 5, icon: Star, color: 'text-warning' },
-    { title: 'Escalation Rate', value: '8%', change: -3, icon: TrendingUp, color: 'text-destructive' },
-    { title: 'Resolution Accuracy', value: '94%', change: -2, icon: Target, color: 'text-success' },
-  ];
-
   // Combine mock tickets with incidents from Business User (real-time sync)
   const allIncidents = [
     ...mockTickets.filter(t => t.type === 'incident'),
@@ -70,17 +68,69 @@ export default function SupportDashboard() {
       type: 'incident' as const,
       createdBy: 'james@fincompany.com' // Business user incidents
     }))
-  ].sort((a, b) => {
-    // Sort by creation date (most recent first)
-    const dateA = new Date(a.created).getTime();
-    const dateB = new Date(b.created).getTime();
-    return dateB - dateA;
-  });
+  ];
 
-  // Filter incidents based on selected status
-  const filteredIncidents = statusFilter === "all" 
-    ? allIncidents 
-    : allIncidents.filter(incident => incident.status === statusFilter);
+  // Date filtering function
+  function filterByDate(incident: Incident | Ticket) {
+    if (dateFilter === 'all') return true;
+    let created: Date;
+    try {
+      created = parseISO(incident.created);
+      if (isNaN(created.getTime())) throw new Error();
+    } catch {
+      created = new Date(incident.created);
+    }
+    const now = new Date();
+    if (dateFilter === 'week') {
+      return created >= startOfWeek(now, { weekStartsOn: 1 });
+    }
+    if (dateFilter === 'month') {
+      return created >= startOfMonth(now);
+    }
+    if (dateFilter === 'year') {
+      return created >= startOfYear(now);
+    }
+    if (dateFilter === 'custom' && customStart && customEnd) {
+      const start = parseISO(customStart);
+      const end = addDays(parseISO(customEnd), 1);
+      return isWithinInterval(created, { start, end });
+    }
+    return true;
+  }
+
+  // Filtered data for metrics and tickets
+  const filteredData = allIncidents.filter(filterByDate);
+
+  // Compute metrics from filteredData
+  const openTickets = filteredData.filter(t => t.status === 'new' || t.status === 'in-progress').length;
+  const resolvedTickets = filteredData.filter(t => t.status === 'resolved' || t.status === 'closed').length;
+  // Dummy average resolution time (replace with your own logic if needed)
+  const avgResolutionTime = (() => {
+    const resolved = filteredData.filter(t => t.status === 'resolved' || t.status === 'closed');
+    if (resolved.length === 0) return 'N/A';
+    // For demo, assume each resolved ticket took 2.5h
+    return (2.5).toFixed(1) + 'h';
+  })();
+  // Dummy customer satisfaction
+  const customerSatisfaction = '4.8';
+  // Escalation rate
+  const escalationRate = filteredData.filter(t => t.status === 'escalated').length / (filteredData.length || 1) * 100;
+  // Dummy resolution accuracy
+  const resolutionAccuracy = '94%';
+
+  // Metrics array using computed values
+  const metrics = [
+    { title: 'Open Tickets', value: openTickets.toString(), change: 0, icon: TicketIcon, color: 'text-primary' },
+    { title: 'Tickets Resolved', value: resolvedTickets.toString(), change: 0, icon: CheckCircle, color: 'text-success' },
+    { title: 'Avg Resolution Time', value: avgResolutionTime, change: 0, icon: Clock, color: 'text-warning' },
+    { title: 'Customer Satisfaction', value: customerSatisfaction, change: 0, icon: Star, color: 'text-warning' },
+    { title: 'Escalation Rate', value: escalationRate.toFixed(1) + '%', change: 0, icon: TrendingUp, color: 'text-destructive' },
+    { title: 'Resolution Accuracy', value: resolutionAccuracy, change: 0, icon: Target, color: 'text-success' },
+  ];
+
+  // Date and status filtered for tickets/incidents section
+  const filteredIncidents = filteredData
+    .filter(incident => statusFilter === "all" || incident.status === statusFilter);
 
   const handleTicketClick = (ticket: Ticket) => {
     setSelectedTicket(ticket);
@@ -125,6 +175,8 @@ export default function SupportDashboard() {
         return 'bg-warning/10 text-warning';
       case 'waiting-for-user':
         return 'bg-muted/50 text-muted-foreground';
+      case 'closed':
+        return 'bg-success/10 text-success';
       default:
         return 'bg-muted';
     }
@@ -144,7 +196,6 @@ export default function SupportDashboard() {
     }
   };
 
-
   return (
     <div className="space-y-6">
       <div>
@@ -152,6 +203,40 @@ export default function SupportDashboard() {
         <p className="text-muted-foreground">
           Monitor tickets, incidents, and performance metrics
         </p>
+      </div>
+
+      {/* Date Filter UI */}
+      <div className="mb-4 flex items-center gap-4 flex-wrap">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <Select value={dateFilter} onValueChange={v => setDateFilter(v as any)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Date Range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="week">This Week</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+            <SelectItem value="year">This Year</SelectItem>
+            <SelectItem value="custom">Custom Range</SelectItem>
+          </SelectContent>
+        </Select>
+        {dateFilter === 'custom' && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={customStart}
+              onChange={e => setCustomStart(e.target.value)}
+              className="border rounded px-2 py-1"
+            />
+            <span>to</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={e => setCustomEnd(e.target.value)}
+              className="border rounded px-2 py-1"
+            />
+          </div>
+        )}
       </div>
 
       {/* Metrics Grid */}
@@ -166,7 +251,7 @@ export default function SupportDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TicketIcon className="h-5 w-5 text-primary" />
-            Assigned Incidents ({allIncidents.length})
+            Assigned Incidents ({filteredData.length})
           </CardTitle>
           <CardDescription>
             Click on an incident number to view detailed information (synced with Business User dashboard)
@@ -175,7 +260,6 @@ export default function SupportDashboard() {
         <CardContent>
           {/* Status Filter */}
           <div className="mb-4 flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Filter by status" />
@@ -192,7 +276,7 @@ export default function SupportDashboard() {
               </SelectContent>
             </Select>
             <span className="text-sm text-muted-foreground">
-              Showing {filteredIncidents.length} of {allIncidents.length} incidents
+              Showing {filteredIncidents.length} of {filteredData.length} incidents
             </span>
           </div>
 

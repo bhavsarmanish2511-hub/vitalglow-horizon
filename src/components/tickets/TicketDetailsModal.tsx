@@ -15,6 +15,9 @@ import {
   Download,
   ExternalLink,
   FileText,
+  CheckCircle,
+  AlertCircle,
+  Paperclip,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +45,16 @@ interface TicketData {
     content: string;
     timestamp: string;
   }>;
+  timeline?: Array<{
+    status: string;
+    description: string;
+    timestamp: string;
+    author?: string;
+  }>;
+  attachments?: Array<{
+    name: string;
+    url: string;
+  }>;
 }
 
 interface TicketDetailsModalProps {
@@ -54,7 +67,6 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
   const { toast } = useToast();
   const [showReportModal, setShowReportModal] = useState(false);
 
-  // Helper for status color
   const statusColor = ticket.status === "resolved"
     ? "bg-green-100 text-green-700"
     : "bg-blue-100 text-blue-700";
@@ -103,6 +115,41 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
         <div>${ticket.description}</div>
       </div>
       <div class="section card">
+        <div class="label">Timeline</div>
+        ${ticket.timeline && ticket.timeline.length > 0
+          ? ticket.timeline
+              .map(
+                (event) => `
+                  <div>
+                    <strong>${event.status}</strong> - ${event.description}
+                    <div class="timestamp">${event.timestamp}${event.author ? " | By: " + event.author : ""}</div>
+                  </div>
+                `
+              )
+              .join("")
+          : "<div>No timeline events.</div>"}
+      </div>
+      <div class="section card">
+        <div class="label">Resolution</div>
+        ${ticket.resolution
+          ? `<a href="${ticket.resolution}" target="_blank">${ticket.resolution}</a>`
+          : "<div>No resolution provided yet.</div>"}
+      </div>
+      <div class="section card">
+        <div class="label">Attachments</div>
+        ${ticket.attachments && ticket.attachments.length > 0
+          ? ticket.attachments
+              .map(
+                (attachment) => `
+                  <div>
+                    <a href="${attachment.url}" target="_blank">${attachment.name}</a>
+                  </div>
+                `
+              )
+              .join("")
+          : "<div>No attachments.</div>"}
+      </div>
+      <div class="section card">
         <div class="label">Chat History</div>
         ${ticket.chatHistory && ticket.chatHistory.length > 0
           ? ticket.chatHistory
@@ -133,6 +180,17 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
               .join("")
           : "<div>No comments.</div>"}
       </div>
+      <div class="section card">
+        <div class="label">AI Actions & Recommendations</div>
+        <ul>
+          <li>Ticket created and categorized as <strong>${ticket.category}</strong>.</li>
+          <li>Assigned to <strong>${ticket.assignee}</strong> for resolution.</li>
+          <li>Priority set to <strong>${ticket.priority}</strong> based on initial assessment.</li>
+          <li>AI assistant provided guidance and answered user queries in chat.</li>
+          ${ticket.resolution ? "<li>Resolution provided with secure download link.</li>" : ""}
+          ${ticket.status === "resolved" ? "<li>Ticket marked as resolved and closed.</li>" : ""}
+        </ul>
+      </div>
     </body>
   </html>
   `;
@@ -155,15 +213,7 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
     });
   };
 
-  // Show the report in a modal
-  const handleViewReport = () => {
-    setShowReportModal(true);
-    // toast({
-    //   title: "Opening Detailed Report",
-    //   description: "Viewing all AI actions taken to resolve this ticket.",
-    // });
-  };
-
+  const handleViewReport = () => setShowReportModal(true);
   const handleCloseReportModal = () => setShowReportModal(false);
 
   const handleOpenSharePoint = () => {
@@ -248,6 +298,104 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
                 </CardContent>
               </Card>
 
+              {/* Timeline */}
+              {ticket.timeline && ticket.timeline.length > 0 && (
+                <Card className="bg-muted/50 border border-blue-100 shadow">
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2 text-blue-700">
+                      <Clock className="h-4 w-4" />
+                      Ticket Timeline
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {ticket.timeline.map((event, idx) => (
+                        <div key={idx} className="flex gap-3 items-start">
+                          <div className="flex flex-col items-center">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-blue-200">
+                              {event.status === "Resolved" ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : event.status === "Created" ? (
+                                <AlertCircle className="h-4 w-4 text-blue-600" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-yellow-600" />
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-1 pb-2">
+                            <p className="font-medium text-sm text-blue-700">{event.status}</p>
+                            <p className="text-sm text-muted-foreground">{event.description}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{event.timestamp}</p>
+                            {event.author && (
+                              <p className="text-xs text-muted-foreground">By: {event.author}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Resolution Field */}
+              {ticket.resolution && (
+                <Card className="bg-success/5 border-success/20 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2 text-success">
+                      <Download className="h-4 w-4" />
+                      Resolution
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Download Link:</p>
+                      <a 
+                        href={ticket.resolution} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline break-all text-sm font-medium flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {ticket.resolution}
+                      </a>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      This link provides access to the resolved document or resource.
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Attachments */}
+              {ticket.attachments && ticket.attachments.length > 0 && (
+                <Card className="bg-muted/50 border border-indigo-100 shadow">
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2 text-indigo-700">
+                      <Paperclip className="h-4 w-4" />
+                      Attachments
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {ticket.attachments.map((attachment, idx) => (
+                        <Button
+                          key={idx}
+                          variant="outline"
+                          className="w-full justify-between border-indigo-200"
+                          onClick={() => window.open(attachment.url, "_blank")}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Paperclip className="h-4 w-4" />
+                            {attachment.name}
+                          </span>
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Chat History */}
               {ticket.chatHistory && ticket.chatHistory.length > 0 && (
                 <Card className="bg-muted/50 border border-indigo-100 shadow">
@@ -276,32 +424,6 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
                         )}
                       </div>
                     ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Resolution Field */}
-              {ticket.resolution && (
-                <Card className="bg-success/5 border-success/20 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2 text-success">
-                      <Download className="h-4 w-4" />
-                      Resolution
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Download Link:</p>
-                      <a 
-                        href={ticket.resolution} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline break-all text-sm font-medium flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        {ticket.resolution}
-                      </a>
-                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -354,28 +476,29 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
         </DialogContent>
       </Dialog>
 
-      {/* Modal to show the report */}
+      {/* Enhanced Detailed Report Modal */}
       <Dialog open={showReportModal} onOpenChange={handleCloseReportModal}>
-        <DialogContent className="max-w-xl bg-gray-50 shadow-xl border-2 border-blue-100 flex flex-col" style={{ padding: 0 }}>
+        <DialogContent className="max-w-2xl bg-gray-50 shadow-xl border-2 border-blue-100 flex flex-col" style={{ padding: 0 }}>
           <div className="p-6 pb-0">
             <DialogHeader>
               <DialogTitle>
                 <span className="flex items-center gap-2 text-blue-700">
                   <FileText className="h-5 w-5" />
-                  SR {ticket.id} - Detailed Report
+                  SR {ticket.id} - Detailed Ticket Report
                 </span>
               </DialogTitle>
             </DialogHeader>
           </div>
-          <div className="flex-1 min-h-0 overflow-auto px-6 py-4 max-h-[60vh]">
+          <div className="flex-1 min-h-0 overflow-auto px-6 py-4 max-h-[70vh]">
             <div className="space-y-6">
+              {/* Ticket Metadata */}
               <div>
                 <div className="flex gap-2 mb-2">
                   <Badge className={statusColor}>{ticket.status.replace("-", " ")}</Badge>
                   <Badge className={priorityColor}>{ticket.priority} priority</Badge>
                   <Badge className="bg-indigo-100 text-indigo-700">{ticket.category}</Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm mb-2">
                   <div>
                     <span className="font-semibold text-muted-foreground">Ticket ID:</span> {ticket.id}
                   </div>
@@ -389,13 +512,104 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
                     <span className="font-semibold text-muted-foreground">Last Updated:</span> {ticket.updated}
                   </div>
                 </div>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-semibold">Status Meaning:</span> {ticket.status === "resolved" ? "Ticket has been fully resolved and closed." : "Ticket is currently open and under review."}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-semibold">Priority Meaning:</span> {ticket.priority === "critical" ? "Immediate attention required." : ticket.priority === "high" ? "High urgency, should be prioritized." : "Standard or low priority."}
+                </div>
               </div>
               <Separator />
+
+              {/* Timeline */}
+              {ticket.timeline && ticket.timeline.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-blue-700 mb-2">Ticket Timeline</h3>
+                  <div className="space-y-3">
+                    {ticket.timeline.map((event, idx) => (
+                      <div key={idx} className="flex gap-3 items-start">
+                        <div className="flex flex-col items-center">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-blue-200">
+                            {event.status === "Resolved" ? (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            ) : event.status === "Created" ? (
+                              <AlertCircle className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <Clock className="h-4 w-4 text-yellow-600" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 pb-2">
+                          <p className="font-medium text-sm text-blue-700">{event.status}</p>
+                          <p className="text-sm text-muted-foreground">{event.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{event.timestamp}</p>
+                          {event.author && (
+                            <p className="text-xs text-muted-foreground">By: {event.author}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <Separator />
+
+              {/* Description */}
               <div>
                 <h3 className="font-semibold text-blue-700 mb-2">Description</h3>
                 <p className="text-muted-foreground">{ticket.description}</p>
               </div>
               <Separator />
+
+              {/* Resolution */}
+              {ticket.resolution && (
+                <div>
+                  <h3 className="font-semibold text-green-700 mb-2">Resolution</h3>
+                  <div className="flex items-center gap-2">
+                    <Download className="h-4 w-4 text-success" />
+                    <span className="text-sm text-muted-foreground">Download Link:</span>
+                    <a
+                      href={ticket.resolution}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline break-all text-sm font-medium flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {ticket.resolution}
+                    </a>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    This link provides access to the resolved document or resource.
+                  </div>
+                </div>
+              )}
+              <Separator />
+
+              {/* Attachments */}
+              {ticket.attachments && ticket.attachments.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-indigo-700 mb-2">Attachments</h3>
+                  <div className="space-y-2">
+                    {ticket.attachments.map((attachment, idx) => (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        className="w-full justify-between border-indigo-200"
+                        onClick={() => window.open(attachment.url, "_blank")}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Paperclip className="h-4 w-4" />
+                          {attachment.name}
+                        </span>
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <Separator />
+
+              {/* Chat History */}
               <div>
                 <h3 className="font-semibold text-indigo-700 mb-2">Chat History</h3>
                 {ticket.chatHistory && ticket.chatHistory.length > 0 ? (
@@ -422,8 +636,10 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
                 )}
               </div>
               <Separator />
+
+              {/* Comments */}
               <div>
-                <h3 className="font-semibold text-green-700 mb-2">Comments</h3>
+                <h3 className="font-semibold text-green-700 mb-2">Activity & Comments</h3>
                 {ticket.comments && ticket.comments.length > 0 ? (
                   ticket.comments.map((comment, index) => (
                     <div key={index} className="bg-green-50 p-4 rounded-lg border border-green-200 shadow-sm mb-2">
@@ -437,6 +653,24 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
                 ) : (
                   <p className="text-muted-foreground">No comments.</p>
                 )}
+              </div>
+              <Separator />
+
+              {/* AI Actions / Recommendations */}
+              <div>
+                <h3 className="font-semibold text-primary mb-2">AI Actions & Recommendations</h3>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  <li>Ticket created and categorized as <strong>{ticket.category}</strong>.</li>
+                  <li>Assigned to <strong>{ticket.assignee}</strong> for resolution.</li>
+                  <li>Priority set to <strong>{ticket.priority}</strong> based on initial assessment.</li>
+                  <li>AI assistant provided guidance and answered user queries in chat.</li>
+                  {ticket.resolution && (
+                    <li>Resolution provided with secure download link.</li>
+                  )}
+                  {ticket.status === "resolved" && (
+                    <li>Ticket marked as resolved and closed.</li>
+                  )}
+                </ul>
               </div>
             </div>
           </div>

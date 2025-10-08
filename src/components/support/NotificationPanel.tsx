@@ -39,7 +39,6 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
 
     const notifiedIncidents = JSON.parse(localStorage.getItem(notifiedIncidentsKey) || '[]');
     
-    // Find incidents that haven't been notified yet
     incidents.forEach(incident => {
       if (!notifiedIncidents.includes(incident.id)) {
         const notificationId = `incident-${incident.id}-${Date.now()}`;
@@ -60,12 +59,10 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
           return [newNotification, ...prev];
         });
 
-        // Mark this incident as notified
         notifiedIncidents.push(incident.id);
       }
     });
 
-    // Save notified incidents list
     localStorage.setItem(notifiedIncidentsKey, JSON.stringify(notifiedIncidents));
   }, [incidents, userRole, notifiedIncidentsKey]);
 
@@ -83,7 +80,6 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
       const notificationId = `incident-${incident.id}-${Date.now()}`;
       const notifiedIncidents = JSON.parse(localStorage.getItem(notifiedIncidentsKey) || '[]');
       
-      // Check if notification already exists to prevent duplicates
       setNotifications(prev => {
         const exists = prev.some(n => n.ticketId === incident.id && n.type === 'assignment');
         if (exists) return prev;
@@ -98,7 +94,6 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
           ticketId: incident.id
         };
         
-        // Mark this incident as notified
         if (!notifiedIncidents.includes(incident.id)) {
           notifiedIncidents.push(incident.id);
           localStorage.setItem(notifiedIncidentsKey, JSON.stringify(notifiedIncidents));
@@ -145,7 +140,6 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
       const { ticket, type } = event.detail;
       const notificationId = `created-${ticket.id}-${Date.now()}`;
       
-      // Check if notification already exists to prevent duplicates
       setNotifications(prev => {
         const exists = prev.some(n => n.ticketId === ticket.id && n.title.includes('Created'));
         if (exists) return prev;
@@ -177,7 +171,6 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
       const { incidentId, srId, title } = event.detail;
       const notificationId = `resolution-${incidentId || srId}-${Date.now()}`;
       
-      // Check if notification already exists to prevent duplicates
       setNotifications(prev => {
         const ticketId = srId || incidentId;
         const exists = prev.some(n => n.ticketId === ticketId && n.type === 'resolved');
@@ -204,12 +197,9 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleNotificationClick = (notification: Notification) => {
-    // Mark as read
     setNotifications(prev =>
       prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
     );
-    
-    // Dispatch event to open the ticket/incident modal
     if (notification.ticketId) {
       window.dispatchEvent(new CustomEvent('notification-clicked', { 
         detail: notification.ticketId 
@@ -248,52 +238,57 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel className="flex items-center justify-between">
-          <span>Notifications</span>
-          {unreadCount > 0 && (
-            <Badge variant="secondary">{unreadCount} new</Badge>
-          )}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <ScrollArea className="h-[400px]">
-          {notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              No notifications
+      <DropdownMenuContent align="end" className="w-80 bg-white shadow-lg">
+  <DropdownMenuLabel className="flex items-center justify-between">
+    <span>Notifications</span>
+    {unreadCount > 0 && (
+      <Badge variant="secondary">{unreadCount} new</Badge>
+    )}
+  </DropdownMenuLabel>
+  <DropdownMenuSeparator />
+  <ScrollArea className="h-[400px]">
+    {notifications.length === 0 ? (
+      <div className="p-4 text-center text-sm text-muted-foreground">
+        No notifications
+      </div>
+    ) : (
+      notifications.map((notification) => (
+        <DropdownMenuItem
+          key={notification.id}
+          className="flex flex-col items-start gap-1 p-4 cursor-pointer transition-colors group
+            hover:bg-blue-50 focus:bg-blue-50 active:bg-blue-100"
+          onClick={() => handleNotificationClick(notification)}
+        >
+          <div className="flex items-start justify-between w-full gap-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p
+                  className={`font-medium text-sm transition-colors
+                    ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}
+                    group-hover:text-black`}
+                >
+                  {notification.title}
+                </p>
+                {!notification.read && (
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 transition-colors group-hover:text-black">
+                {notification.message}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2 transition-colors group-hover:text-black">
+                {notification.timestamp}
+              </p>
             </div>
-          ) : (
-            notifications.map((notification) => (
-              <DropdownMenuItem
-                key={notification.id}
-                className="flex flex-col items-start gap-1 p-4 cursor-pointer"
-                onClick={() => handleNotificationClick(notification)}
-              >
-                <div className="flex items-start justify-between w-full gap-2">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className={`font-medium text-sm ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {notification.title}
-                      </p>
-                      {!notification.read && (
-                        <div className="h-2 w-2 rounded-full bg-primary" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {notification.timestamp}
-                    </p>
-                  </div>
-                  <Badge className={getTypeColor(notification.type)} variant="outline">
-                    {notification.type}
-                  </Badge>
-                </div>
-              </DropdownMenuItem>
-            ))
-          )}
-        </ScrollArea>
-      </DropdownMenuContent>
+            <Badge className={getTypeColor(notification.type)} variant="outline">
+              {notification.type}
+            </Badge>
+          </div>
+        </DropdownMenuItem>
+      ))
+    )}
+  </ScrollArea>
+</DropdownMenuContent>
     </DropdownMenu>
   );
 }
