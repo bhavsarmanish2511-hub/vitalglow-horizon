@@ -22,7 +22,7 @@ const isSensitiveRequest = (message: string): boolean => {
 };
 
 export function useChatbot() {
-  const { addTicket, addIncident, updateTicket } = useTickets();
+  const { addTicket, addIncident, updateTicket, updateIncident } = useTickets();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -34,14 +34,28 @@ export function useChatbot() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  // Password unlock flow state
-  const [passwordUnlockFlow, setPasswordUnlockFlow] = useState<{
+  // Unlock Account flow state
+  const [unlockFlow, setUnlockFlow] = useState<{
     active: boolean;
+    step?:
+      | "start"
+      | "checking_issue"
+      | "awaiting_try"
+      | "awaiting_feedback"
+      | "reset_link"
+      | "incident_created"
+      | "closed";
     incidentId?: string;
-    awaitingConfirmation?: boolean;
   }>({ active: false });
 
-  // Store chat history for ticket creation
+  // Financial report flow state (unchanged)
+  const [financialReportFlow, setFinancialReportFlow] = useState<{
+    active: boolean;
+    step: 'initial' | 'details-provided' | 'confirm' | 'creating';
+    reportDetails?: string;
+  }>({ active: false, step: 'initial' });
+
+  // Store chat history for ticket/incident creation
   const getChatHistory = useCallback(() => {
     return messages
       .filter(m => m.type === "text" && m.role !== "assistant" || m.role === "user")
@@ -58,7 +72,8 @@ export function useChatbot() {
     return id;
   }, []);
 
-  const simulateTyping = useCallback(async (delay = 1500) => {
+  // Simulate typing with 4 seconds delay
+  const simulateTyping = useCallback(async (delay = 4000) => {
     setIsTyping(true);
     await new Promise(resolve => setTimeout(resolve, delay));
     setIsTyping(false);
@@ -71,121 +86,173 @@ export function useChatbot() {
     setInputValue("");
 
     // Simulate thinking
-    await simulateTyping(5000);
+    await simulateTyping();
 
     const lowerContent = content.toLowerCase();
     const isSensitive = isSensitiveRequest(content);
 
-    // --- PASSWORD UNLOCK FLOW ---
-    const isPasswordUnlockRequest = lowerContent.includes("password unlock");
-    
-    // Handle confirmation in password unlock flow
-    if (passwordUnlockFlow.active && passwordUnlockFlow.awaitingConfirmation) {
-      const isConfirmation = lowerContent.includes("yes") || 
-                            lowerContent.includes("able to login") || 
-                            lowerContent.includes("logged in") ||
-                            lowerContent.includes("working") ||
-                            lowerContent.includes("sure");
-      
-      if (isConfirmation && passwordUnlockFlow.incidentId) {
-        await simulateTyping(1500);
-        
-        addMessage({
-          role: "assistant",
-          content: "Thanks for confirming!",
-          type: "text"
-        });
-        
-        // Close the incident
-        updateTicket(passwordUnlockFlow.incidentId, { 
-          status: "resolved",
-          resolvedBy: "AI Assistant",
-          resolution: "Account unlocked successfully. User confirmed access restored."
-        });
-        
-        setPasswordUnlockFlow({ active: false });
-        return;
-      }
+    // --- UNLOCK ACCOUNT FLOW (as Incident) ---
+    const unlockTriggers = [
+      "unlock account", "password unlock", "account unlock", "reset password", "forgot password", "unable to login"
+    ];
+    const isUnlockRequest = unlockTriggers.some(trigger => lowerContent.includes(trigger));
+
+    // If user triggers unlock account flow from quick actions or message
+    if (isUnlockRequest && !unlockFlow.active) {
+      setUnlockFlow({ active: true, step: "start" });
+      addMessage({
+        role: "assistant",
+        content: "Hi! I'm here to help you unlock your account. Could you please describe the issue you're facing?",
+        type: "text"
+      });
+      return;
     }
-    
-    // Handle initial password unlock request or "unable to login" message
-    if (isPasswordUnlockRequest || 
-        (passwordUnlockFlow.active && !passwordUnlockFlow.awaitingConfirmation)) {
-      
-      if (!passwordUnlockFlow.active) {
-        // First message - user clicked "Password Unlock"
-        setPasswordUnlockFlow({ active: true });
-        
+
+    // Unlock flow steps
+    if (unlockFlow.active) {
+      // Step: User describes issue (e.g., "I'm unable to login")
+      if (unlockFlow.step === "start" && lowerContent.length > 0) {
+        setUnlockFlow({ ...unlockFlow, step: "checking_issue" });
         addMessage({
           role: "assistant",
-          content: "Hi! I'm here to help you unlock your account. Could you please describe the issue you're facing?",
+          content: "Sorry to hear that, let me check the issue.",
           type: "text"
         });
+        await simulateTyping();
+
+        addMessage({
+          role: "assistant",
+          content: "Checking when was the last time password was updated, please hold on for few seconds.",
+          type: "text"
+        });
+        await simulateTyping();
+
+        // addMessage({
+        //   role: "assistant",
+        //   content: "Checking when was the last time password was updated, please hold on for few seconds.",
+        //   type: "text"
+        // });
+        // await simulateTyping();
+
+        addMessage({
+          role: "assistant",
+          content: "Thanks for waiting, your account has been unlocked, could you please try logging in.",
+          type: "text"
+        });
+        setUnlockFlow({ ...unlockFlow, step: "awaiting_try" });
         return;
       }
-      
-      // User has described the issue (e.g., "unable to login")
-      await simulateTyping(1500);
-      
-      addMessage({
-        role: "assistant",
-        content: "Sorry to hear that, let me check the issue.",
-        type: "text"
-      });
-      
-      await simulateTyping(4000);
-      
-      addMessage({
-        role: "assistant",
-        content: "Checking when was the last time password was updated, please hold on for few seconds.",
-        type: "text"
-      });
-      
-      await simulateTyping(4000);
-      
-      // Create incident (AI-only, no support engineer assignment)
-      const incidentId = `INC${Math.floor(Math.random() * 90000000) + 10000000}`;
-      const now = new Date().toLocaleString();
-      const chatHistory = getChatHistory();
-      
-      const newIncident = {
-        id: incidentId,
-        title: "Password Unlock Request",
-        description: `User unable to login - Password unlock request: ${content}`,
-        status: "in-progress",
-        priority: "medium",
-        assignee: "AI Assistant",
-        createdBy: "james@fincompany.com",
-        created: now,
-        updated: now,
-        category: "Account Access",
-        chatHistory,
-        relatedSR: "",
-        approvalStatus: 'approved' as const,
-        emailSent: false,
-        isAIOnly: true, // Flag to exclude from support engineer view
-        timeline: [
-          { status: "Created", timestamp: now, description: "Incident created by AI Assistant" },
-          { status: "In Progress", timestamp: now, description: "AI Assistant checking account status" }
-        ]
-      };
-      
-      addIncident(newIncident);
-      
-      addMessage({
-        role: "assistant",
-        content: "Thanks for waiting, your account has been unlocked, could you please try logging in.",
-        type: "text"
-      });
-      
-      await simulateTyping(2000);
-      
-      setPasswordUnlockFlow({ 
-        active: true, 
-        incidentId: incidentId,
-        awaitingConfirmation: true 
-      });
-      
+
+      // Step: User tries to login ("sure, let me try to login")
+      if (unlockFlow.step === "awaiting_try" && lowerContent.match(/try|login|logging in|let me/i)) {
+        addMessage({
+          role: "assistant",
+          content: "Great, let me know",
+          type: "text"
+        });
+        setUnlockFlow({ ...unlockFlow, step: "awaiting_feedback" });
+        return;
+      }
+
+      // Step: User gives feedback (still unable to login)
+      if (
+        unlockFlow.step === "awaiting_feedback" &&
+        (lowerContent.includes("still unable") ||
+          lowerContent.includes("not able") ||
+          lowerContent.includes("unable") ||
+          lowerContent.includes("didn't work") ||
+          lowerContent.includes("can't login"))
+      ) {
+        addMessage({
+          role: "assistant",
+          content: "Sorry to hear that, let me check, please hold on for few seconds",
+          type: "text"
+        });
+        await simulateTyping();
+
+        addMessage({
+          role: "assistant",
+          content:
+            "In order to resolve the issue, I will provide you a link for password reset, for that I need to raise an Incident request",
+          type: "text"
+        });
+        await simulateTyping();
+
+        addMessage({
+          role: "assistant",
+          content:
+            "please open the link, and set your new password. (link: www.passwordreset.com)",
+          type: "text"
+        });
+        await simulateTyping();
+
+        // Create incident
+        const incidentId = `INC${Date.now()}`;
+        const now = new Date().toLocaleString();
+        const chatHistory = getChatHistory();
+
+        const newIncident = {
+          id: incidentId,
+          title: "Password Reset Request",
+          description: "User unable to login, password reset required.",
+          status: "New",
+          priority: "high",
+          assignee: "AI Assistant",
+          createdBy: "james@fincompany.com",
+          created: now,
+          updated: now,
+          category: "Account Access",
+          chatHistory,
+          approvalStatus: 'pending' as const,
+          emailSent: false,
+          isAIOnly: true, // <-- This hides it from support dashboard
+          timeline: [
+            { status: "Created", timestamp: now, description: "Incident created by AI Assistant" },
+            { status: "New", timestamp: now, description: "Password reset link provided to user." }
+          ]
+        };
+        addIncident(newIncident);
+
+        addMessage({
+          role: "assistant",
+          content: `An incident (${incidentId}) has been created for your password reset request.`,
+          type: "incident",
+          ticketId: incidentId,
+          data: newIncident
+        });
+
+        setUnlockFlow({ ...unlockFlow, step: "incident_created", incidentId });
+        return;
+      }
+
+      // Step: User confirms password reset and login
+      if (
+        unlockFlow.step === "incident_created" &&
+        (lowerContent.includes("thanks") ||
+          lowerContent.includes("able to login") ||
+          lowerContent.includes("logged in") ||
+          lowerContent.includes("success"))
+      ) {
+        addMessage({
+          role: "assistant",
+          content: "Great! I'm closing this incident now. Your account is working properly.",
+          type: "text"
+        });
+
+        // Close the incident
+        if (unlockFlow.incidentId) {
+          updateIncident(unlockFlow.incidentId, {
+            status: "Closed",
+            resolvedBy: "AI Assistant",
+            resolution: "User confirmed password reset and successful login."
+          });
+        }
+
+        setUnlockFlow({ active: false, step: "closed" });
+        return;
+      }
+
+      // For other messages, keep the flow active
       return;
     }
     // --- END PASSWORD UNLOCK FLOW ---
@@ -198,7 +265,8 @@ export function useChatbot() {
                             lowerContent.includes("pay check") ||
                             lowerContent.includes("payslip");
     const isFinancialReportRequest = (lowerContent.includes("financial") && lowerContent.includes("report")) ||
-                                      (lowerContent.includes("finance") && lowerContent.includes("report"));
+                                      (lowerContent.includes("finance") && lowerContent.includes("report")) ||
+                                      lowerContent.includes("license charges");
     const isInstallRequest = lowerContent.includes("install") || 
                             lowerContent.includes("application") ||
                             lowerContent.includes("software");
@@ -264,7 +332,7 @@ export function useChatbot() {
         id: ticketId,
         title: "Payslip Request",
         description: content,
-        status: "open",
+        status: "New",
         priority: "high",
         assignee: "Support Engineer (martha@intelletica.com)",
         created: now,
@@ -277,6 +345,11 @@ export function useChatbot() {
         ]
       };
       addTicket(newTicket);
+
+      // Dispatch notification event for support engineer
+      window.dispatchEvent(new CustomEvent('support-ticket-created', { 
+        detail: { ticket: newTicket, type: 'ticket' } 
+      }));
 
       addMessage({
         role: "assistant",
@@ -294,7 +367,7 @@ export function useChatbot() {
         id: incidentId,
         title: `Sensitive Payslip Access - Linked to ${ticketId}`,
         description: `Incident created for sensitive payslip request: ${content}`,
-        status: "pending-approval",
+        status: "New",
         priority: "critical",
         assignee: "martha@intelletica.com",
         createdBy: "james@fincompany.com",
@@ -332,8 +405,108 @@ export function useChatbot() {
     }
     // --- End Payslip Flow ---
 
-    // Handle financial report and other sensitive requests
-    if (isFinancialReportRequest || isPayrollRequest || isInstallRequest) {
+    // --- Financial Report Conversational Flow ---
+    if (isFinancialReportRequest || financialReportFlow.active) {
+      // Step 1: Initial request
+      if (!financialReportFlow.active) {
+        setFinancialReportFlow({ active: true, step: 'initial' });
+        
+        addMessage({
+          role: "assistant",
+          content: "I would be able to help you on this, could you please let me know which Report you are referring to in Financial report?",
+          type: "text"
+        });
+        return;
+      }
+
+      // Step 2: User provides details
+      if (financialReportFlow.step === 'initial') {
+        setFinancialReportFlow({ 
+          active: true, 
+          step: 'details-provided',
+          reportDetails: content 
+        });
+        
+        await simulateTyping(1500);
+        
+        addMessage({
+          role: "assistant",
+          content: "Thanks for the info, I'll try to fetch that document, for this I need to create a Service Request and then will be able to provide you the requested doc. Do you want me to do that?",
+          type: "text"
+        });
+        return;
+      }
+
+      // Step 3: User confirms
+      if (financialReportFlow.step === 'details-provided') {
+        const isConfirmed = lowerContent.includes("yes") || 
+                           lowerContent.includes("sure") || 
+                           lowerContent.includes("ok") ||
+                           lowerContent.includes("please");
+        
+        if (isConfirmed) {
+          setFinancialReportFlow({ ...financialReportFlow, step: 'creating' });
+          
+          await simulateTyping(1500);
+          
+          addMessage({
+            role: "assistant",
+            content: `Creating Service Request ${ticketId} and assigning to Support Engineer...`,
+            type: "text"
+          });
+
+          await simulateTyping(2000);
+
+          const newTicket = {
+            id: ticketId,
+            title: "Financial Report Request - License Charges",
+            description: financialReportFlow.reportDetails || content,
+            status: "New",
+            priority: "high",
+            assignee: "Support Engineer (martha@intelletica.com)",
+            createdBy: "james@fincompany.com",
+            created: now,
+            updated: now,
+            category: "Finance",
+            chatHistory,
+            relatedIncident: "",
+            comments: [
+              { author: "AI Assistant", content: "Service Request created and assigned to Support Engineer", timestamp: now }
+            ]
+          };
+          
+          addTicket(newTicket);
+          
+          // Dispatch notification event for support engineer
+          window.dispatchEvent(new CustomEvent('support-ticket-created', { 
+            detail: { ticket: newTicket, type: 'ticket' } 
+          }));
+          
+          addMessage({
+            role: "assistant",
+            content: `Service Request ${ticketId} created successfully and assigned to Support Engineer. They will review your request and provide the document shortly.`,
+            type: "ticket",
+            ticketId: ticketId,
+            data: newTicket
+          });
+
+          setFinancialReportFlow({ active: false, step: 'initial' });
+          return;
+        } else {
+          addMessage({
+            role: "assistant",
+            content: "No problem. Let me know if you need help with anything else.",
+            type: "text"
+          });
+          setFinancialReportFlow({ active: false, step: 'initial' });
+          return;
+        }
+      }
+    }
+    // --- End Financial Report Flow ---
+
+    // Handle payroll and other sensitive requests (NOT financial reports)
+    if (isPayrollRequest || isInstallRequest) {
       addMessage({
         role: "assistant",
         content: `I'll help you with that. Creating Service Request ${ticketId}...`,
@@ -344,24 +517,20 @@ export function useChatbot() {
 
       const newTicket = {
         id: ticketId,
-        title: isFinancialReportRequest 
-          ? "Financial Report Access Request" 
-          : isPayrollRequest 
-            ? "Payroll Information Request" 
-            : "Application Installation Request",
+        title: isPayrollRequest 
+          ? "Payroll Information Request" 
+          : "Application Installation Request",
         description: content,
-        status: "open",
+        status: "New",
         priority: isSensitiveReq ? "high" : "medium",
-        assignee: isFinancialReportRequest || isPayrollRequest 
+        assignee: isPayrollRequest 
           ? "Support Engineer (martha@intelletica.com)" 
           : "IT Support",
         created: now,
         updated: now,
-        category: isFinancialReportRequest 
-          ? "Finance" 
-          : isPayrollRequest 
-            ? "Payroll" 
-            : "Technical",
+        category: isPayrollRequest 
+          ? "Payroll" 
+          : "Technical",
         chatHistory,
         relatedIncident: "",
         comments: [
@@ -370,6 +539,11 @@ export function useChatbot() {
       };
       
       addTicket(newTicket);
+      
+      // Dispatch notification event for support engineer
+      window.dispatchEvent(new CustomEvent('support-ticket-created', { 
+        detail: { ticket: newTicket, type: 'ticket' } 
+      }));
       
       addMessage({
         role: "assistant",
@@ -394,9 +568,9 @@ export function useChatbot() {
         
         const newIncident = {
           id: incidentId,
-          title: `Sensitive ${isFinancialReportRequest ? 'Financial Report' : isPayrollRequest ? 'Payroll' : 'Data'} Access - Linked to ${ticketId}`,
+          title: `Sensitive ${isPayrollRequest ? 'Payroll' : 'Data'} Access - Linked to ${ticketId}`,
           description: `Incident created for sensitive request: ${content}`,
-          status: "pending-approval",
+          status: "New",
           priority: "critical",
           assignee: "martha@intelletica.com",
           createdBy: "james@fincompany.com",
@@ -439,7 +613,7 @@ export function useChatbot() {
 
         const updatedTicket = {
           ...newTicket,
-          status: "resolved",
+          status: "Closed",
           updated: new Date().toLocaleString(),
           comments: [
             ...(newTicket.comments || []),
@@ -476,7 +650,7 @@ export function useChatbot() {
         id: ticketId,
         title: "Q4 2024 Expense Summary",
         description: content,
-        status: "completed",
+        status: "Closed",
         priority: "medium",
         assignee: "Finance Team",
         created: now,
@@ -517,7 +691,7 @@ export function useChatbot() {
         data: {
           id: "INC56789",
           title: "Sensitive Payroll Data Access",
-          status: "in-progress",
+          status: "In Progress",
           priority: "critical",
           assignee: "Finance IT Team",
           timeline: [
@@ -541,7 +715,7 @@ export function useChatbot() {
         id: ticketId,
         title: "Database Access Request",
         description: content,
-        status: "pending",
+        status: "New",
         priority: "medium",
         assignee: "IT Support",
         created: now,
@@ -574,7 +748,7 @@ export function useChatbot() {
         type: "text"
       });
     }
-  }, [addMessage, simulateTyping, getChatHistory, addTicket, addIncident, updateTicket, passwordUnlockFlow]);
+  }, [addMessage, simulateTyping, getChatHistory, addTicket, addIncident, updateTicket, unlockFlow, financialReportFlow, updateIncident]);
 
   return {
     messages,

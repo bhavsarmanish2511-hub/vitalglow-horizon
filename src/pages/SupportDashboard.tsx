@@ -20,10 +20,86 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { addDays, startOfWeek, startOfMonth, startOfYear, isWithinInterval, parseISO } from 'date-fns';
 
+// Enhanced TicketBreakdownModal
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+
+function TicketBreakdownModal({ open, onClose, title, data }) {
+  const priorityColors = {
+    critical: "bg-red-100 text-red-700",
+    high: "bg-orange-100 text-orange-700",
+    medium: "bg-yellow-100 text-yellow-700",
+    low: "bg-green-100 text-green-700",
+  };
+
+  const priorityLabels = {
+    critical: "P1",
+    high: "P2",
+    medium: "P3",
+    low: "P4",
+  };
+
+  const renderBreakdown = (type, icon, breakdown) => {
+    const total = breakdown.total;
+    return (
+      <div className="bg-gray-50 rounded-lg p-4 mb-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          {icon}
+          <span className="font-semibold text-lg">{type}</span>
+          <Badge className="bg-blue-100 text-blue-700 ml-2">{total} total</Badge>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+          {Object.entries(breakdown.priorities).map(([priority, count]) => {
+            const countNum = typeof count === 'number' ? count : Number(count);
+            return (
+              <div key={priority} className="flex flex-col items-center">
+                <Badge className={priorityColors[priority]}>
+                  {priorityLabels[priority] || priority.charAt(0).toUpperCase() + priority.slice(1)}
+                </Badge>
+                <span className="font-bold text-xl mt-1">{countNum}</span>
+                <Progress
+                  value={total ? (countNum / total) * 100 : 0}
+                  className="w-16 h-2 mt-1"
+                />
+                <span className="text-xs text-muted-foreground mt-1">
+                  {total ? ((countNum / total) * 100).toFixed(0) : 0}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={isOpen => { if (!isOpen) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold mb-2">{title}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          {renderBreakdown(
+            "Incidents",
+            <AlertCircle className="h-5 w-5 text-red-500" />,
+            data.incidents
+          )}
+          {renderBreakdown(
+            "Service Requests",
+            <TicketIcon className="h-5 w-5 text-blue-500" />,
+            data.serviceRequests
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function SupportDashboard() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [breakdownModal, setBreakdownModal] = useState<'open' | 'resolved' | null>(null);
 
   // Date filter state
   const [dateFilter, setDateFilter] = useState<'all' | 'week' | 'month' | 'year' | 'custom'>('all');
@@ -31,12 +107,15 @@ export default function SupportDashboard() {
   const [customEnd, setCustomEnd] = useState<string>('');
 
   const [lastIncidentCount, setLastIncidentCount] = useState(0);
-  const { incidents } = useTickets();
+  const { incidents, tickets } = useTickets();
   const { toast } = useToast();
 
   // Show notification when new incident arrives
   useEffect(() => {
-    const newIncidents = incidents.filter(inc => inc.status === 'new' || inc.status === 'pending-approval');
+    const newIncidents = incidents.filter(inc => {
+      const status = inc.status.toLowerCase();
+      return status === 'new';
+    });
     if (newIncidents.length > lastIncidentCount) {
       const latestIncident = newIncidents[0];
       toast({
@@ -60,21 +139,29 @@ export default function SupportDashboard() {
     };
   }, []);
 
-  // Combine mock tickets with incidents from Business User (real-time sync)
+  // Combine mock tickets with real tickets and incidents from Business User (real-time sync)
   // Filter out AI-only incidents that should not appear in support engineer view
-  const allIncidents = [
-    ...mockTickets.filter(t => t.type === 'incident'),
+  type DisplayItem = (Incident | Ticket) & { 
+    type?: 'incident' | 'ticket' | 'service-request';
+    timeline?: Array<{ status: string; timestamp: string; description: string }>;
+  };
+
+  const allIncidents: DisplayItem[] = [
+    ...mockTickets.filter(t => t.type === 'incident') as DisplayItem[],
     ...incidents
-      .filter(inc => !inc.isAIOnly) // Exclude AI-only incidents
+      .filter(inc => !inc.isAIOnly)
       .map(inc => ({
         ...inc,
         type: 'incident' as const,
-        createdBy: 'james@fincompany.com' // Business user incidents
-      }))
+      })) as DisplayItem[],
+    ...tickets.map(ticket => ({
+      ...ticket,
+      type: 'ticket' as const,
+    })) as DisplayItem[]
   ];
 
   // Date filtering function
-  function filterByDate(incident: Incident | Ticket) {
+  function filterByDate(incident: DisplayItem) {
     if (dateFilter === 'all') return true;
     let created: Date;
     try {
@@ -105,55 +192,123 @@ export default function SupportDashboard() {
   const filteredData = allIncidents.filter(filterByDate);
 
   // Compute metrics from filteredData
-  const openTickets = filteredData.filter(t => t.status === 'new' || t.status === 'in-progress').length;
-  const resolvedTickets = filteredData.filter(t => t.status === 'resolved' || t.status === 'closed').length;
-  // Dummy average resolution time (replace with your own logic if needed)
+  const openTickets = filteredData.filter(t => {
+    const status = t.status.toLowerCase();
+    return status === 'new' || status === 'in progress' || status === 'approved' || status === 'on hold';
+  }).length;
+  const resolvedTickets = filteredData.filter(t => {
+    const status = t.status.toLowerCase();
+    return status === 'resolved' || status === 'closed';
+  }).length;
   const avgResolutionTime = (() => {
-    const resolved = filteredData.filter(t => t.status === 'resolved' || t.status === 'closed');
+    const resolved = filteredData.filter(t => {
+      const status = t.status.toLowerCase();
+      return status === 'resolved' || status === 'closed';
+    });
     if (resolved.length === 0) return 'N/A';
-    // For demo, assume each resolved ticket took 2.5h
     return (2.5).toFixed(1) + 'h';
   })();
-  // Dummy customer satisfaction
   const customerSatisfaction = '4.8';
-  // Escalation rate
-  const escalationRate = filteredData.filter(t => t.status === 'escalated').length / (filteredData.length || 1) * 100;
-  // Dummy resolution accuracy
+  const escalationRate = filteredData.filter(t => {
+    const status = t.status.toLowerCase();
+    return status === 'escalated';
+  }).length / (filteredData.length || 1) * 100;
   const resolutionAccuracy = '94%';
+
+  // Calculate breakdown data for Open Tickets
+  const calculateBreakdown = (items: DisplayItem[], isOpen: boolean) => {
+    const relevantItems = items.filter(item => {
+      const status = item.status.toLowerCase();
+      return isOpen 
+        ? (status === 'new' || status === 'in progress' || status === 'approved' || status === 'on hold')
+        : (status === 'resolved' || status === 'closed');
+    });
+
+    const incidents = relevantItems.filter(item => item.type === 'incident');
+    const serviceRequests = relevantItems.filter(item => item.type === 'ticket' || item.type === 'service-request');
+
+    const countPriorities = (items: DisplayItem[]) => ({
+      critical: items.filter(i => i.priority === 'critical').length,
+      high: items.filter(i => i.priority === 'high').length,
+      medium: items.filter(i => i.priority === 'medium').length,
+      low: items.filter(i => i.priority === 'low').length,
+    });
+
+    return {
+      incidents: {
+        total: incidents.length,
+        priorities: countPriorities(incidents),
+      },
+      serviceRequests: {
+        total: serviceRequests.length,
+        priorities: countPriorities(serviceRequests),
+      },
+    };
+  };
+
+  const openBreakdown = calculateBreakdown(filteredData, true);
+  const resolvedBreakdown = calculateBreakdown(filteredData, false);
 
   // Metrics array using computed values
   const metrics = [
-    { title: 'Open Tickets', value: openTickets.toString(), change: 0, icon: TicketIcon, color: 'text-primary' },
-    { title: 'Tickets Resolved', value: resolvedTickets.toString(), change: 0, icon: CheckCircle, color: 'text-success' },
+    { 
+      title: 'Open Tickets', 
+      value: openTickets.toString(), 
+      change: 0, 
+      icon: TicketIcon, 
+      color: 'text-primary',
+      onClick: () => setBreakdownModal('open')
+    },
+    { 
+      title: 'Tickets Resolved', 
+      value: resolvedTickets.toString(), 
+      change: 0, 
+      icon: CheckCircle, 
+      color: 'text-success',
+      onClick: () => setBreakdownModal('resolved')
+    },
     { title: 'Avg Resolution Time', value: avgResolutionTime, change: 0, icon: Clock, color: 'text-warning' },
     { title: 'Customer Satisfaction', value: customerSatisfaction, change: 0, icon: Star, color: 'text-warning' },
     { title: 'Escalation Rate', value: escalationRate.toFixed(1) + '%', change: 0, icon: TrendingUp, color: 'text-destructive' },
     { title: 'Resolution Accuracy', value: resolutionAccuracy, change: 0, icon: Target, color: 'text-success' },
   ];
 
-  // Date and status filtered for tickets/incidents section
+  // Date and status filtered for tickets/incidents section, sorted by most recent first
   const filteredIncidents = filteredData
-    .filter(incident => statusFilter === "all" || incident.status === statusFilter);
+    .filter(incident => statusFilter === "all" || incident.status === statusFilter)
+    .sort((a, b) => {
+      const dateA = new Date(a.created).getTime();
+      const dateB = new Date(b.created).getTime();
+      return dateB - dateA;
+    });
 
-  const handleTicketClick = (ticket: Ticket) => {
-    setSelectedTicket(ticket);
-  };
-
-  const handleIncidentClick = (incident: Incident) => {
-    setSelectedIncident(incident);
-  };
-
-  const handleNotificationClick = (ticketId: string) => {
-    // Find incident by ID
-    const foundItem = allIncidents.find(t => t.id === ticketId);
-    if (foundItem && 'timeline' in foundItem) {
-      setSelectedIncident(foundItem as Incident);
-    } else if (foundItem) {
-      setSelectedTicket(foundItem as Ticket);
+  const handleTicketClick = (ticket: DisplayItem) => {
+    if ('timeline' in ticket && ticket.timeline) {
+      setSelectedIncident(ticket as Incident);
+    } else {
+      setSelectedTicket(ticket as Ticket);
     }
   };
 
-  // Dispatch custom event for notification panel to navigate
+  const handleIncidentClick = (incident: DisplayItem) => {
+    if ('timeline' in incident && incident.timeline) {
+      setSelectedIncident(incident as Incident);
+    } else {
+      setSelectedTicket(incident as Ticket);
+    }
+  };
+
+  const handleNotificationClick = (ticketId: string) => {
+    const foundItem = allIncidents.find(t => t.id === ticketId);
+    if (foundItem) {
+      if ('timeline' in foundItem && foundItem.timeline) {
+        setSelectedIncident(foundItem as Incident);
+      } else {
+        setSelectedTicket(foundItem as Ticket);
+      }
+    }
+  };
+
   useEffect(() => {
     const handleNotificationClicked = (event: CustomEvent) => {
       handleNotificationClick(event.detail);
@@ -166,22 +321,22 @@ export default function SupportDashboard() {
   }, [allIncidents]);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'resolved':
-        return 'bg-success/10 text-success';
+        return 'bg-green-100 text-green-700';
+      case 'closed':
+        return 'bg-green-100 text-green-700';
       case 'escalated':
-        return 'bg-destructive/10 text-destructive';
+        return 'bg-red-100 text-red-700';
       case 'in-progress':
-        return 'bg-primary/10 text-primary';
+        return 'bg-blue-100 text-blue-700';
       case 'new':
       case 'pending-approval':
-        return 'bg-warning/10 text-warning';
+        return 'bg-yellow-100 text-yellow-700';
       case 'waiting-for-user':
-        return 'bg-muted/50 text-muted-foreground';
-      case 'closed':
-        return 'bg-success/10 text-success';
+        return 'bg-gray-100 text-gray-700';
       default:
-        return 'bg-muted';
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -254,10 +409,10 @@ export default function SupportDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TicketIcon className="h-5 w-5 text-primary" />
-            Assigned Incidents ({filteredData.length})
+            Assigned Tickets & Incidents ({filteredData.length})
           </CardTitle>
           <CardDescription>
-            Click on an incident number to view detailed information (synced with Business User dashboard)
+            Click on a ticket/incident number to view detailed information (synced with Business User dashboard)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -279,7 +434,7 @@ export default function SupportDashboard() {
               </SelectContent>
             </Select>
             <span className="text-sm text-muted-foreground">
-              Showing {filteredIncidents.length} of {filteredData.length} incidents
+              Showing {filteredIncidents.length} of {filteredData.length} tickets & incidents
             </span>
           </div>
 
@@ -287,43 +442,54 @@ export default function SupportDashboard() {
             {filteredIncidents.map((ticket) => {
               const isIncident = 'timeline' in ticket;
               return (
-              <div
-                key={ticket.id}
-                className={`border border-border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${
-                  ticket.type === 'incident' ? 'bg-warning/5' : 'bg-card'
-                }`}
-                onClick={() => isIncident ? handleIncidentClick(ticket as Incident) : handleTicketClick(ticket as Ticket)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className="font-mono text-xs">{ticket.id}</Badge>
-                    <Badge className={getStatusColor(ticket.status)}>
-                      {ticket.status.replace("-", " ")}
-                    </Badge>
-                    <Badge className={getPriorityColor(ticket.priority)}>
-                      {ticket.priority}
-                    </Badge>
-                    {ticket.type === 'incident' && (
-                      <Badge variant="outline" className="bg-warning/10 text-warning">
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                        Incident
+                <div
+                  key={ticket.id}
+                  className={`border border-border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer bg-yellow-50`}
+                  onClick={() => {
+                    const isIncident = 'timeline' in ticket && ticket.timeline;
+                    if (isIncident) {
+                      handleIncidentClick(ticket);
+                    } else {
+                      handleTicketClick(ticket);
+                    }
+                  }}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="font-mono text-xs">{ticket.id}</Badge>
+                      <Badge className={getStatusColor(ticket.status)}>
+                        {ticket.status.replace("-", " ")}
                       </Badge>
-                    )}
-                    {ticket.createdBy === 'james@fincompany.com' && (
-                      <Badge variant="secondary" className="text-xs">
-                        From Business User
+                      <Badge className={getPriorityColor(ticket.priority)}>
+                        {ticket.priority}
                       </Badge>
-                    )}
+                      {ticket.type === 'incident' && (
+                        <Badge variant="outline" className="bg-warning/10 text-warning">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Incident
+                        </Badge>
+                      )}
+                      {(ticket.type === 'ticket' || ticket.type === 'service-request') && (
+                        <Badge variant="outline" className="bg-blue-500/10 text-blue-500">
+                          <TicketIcon className="h-3 w-3 mr-1" />
+                          SR Ticket
+                        </Badge>
+                      )}
+                      {ticket.createdBy === 'james@fincompany.com' && (
+                        <Badge variant="secondary" className="text-xs">
+                          From Business User
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">{ticket.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{ticket.description}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Updated: {ticket.updated}
-                  </span>
-                  <span>Assignee: {ticket.assignee}</span>
+                  <h3 className="font-semibold text-foreground mb-1">{ticket.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">{ticket.description}</p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Updated: {ticket.updated}
+                    </span>
+                    <span>Assignee: {ticket.assignee}</span>
                   </div>
                 </div>
               );
@@ -346,6 +512,20 @@ export default function SupportDashboard() {
         incident={selectedIncident}
         open={!!selectedIncident}
         onClose={() => setSelectedIncident(null)}
+      />
+
+      {/* Ticket Breakdown Modal */}
+      <TicketBreakdownModal
+        open={breakdownModal === 'open'}
+        onClose={() => setBreakdownModal(null)}
+        title="Open Tickets Breakdown"
+        data={openBreakdown}
+      />
+      <TicketBreakdownModal
+        open={breakdownModal === 'resolved'}
+        onClose={() => setBreakdownModal(null)}
+        title="Resolved Tickets Breakdown"
+        data={resolvedBreakdown}
       />
     </div>
   );

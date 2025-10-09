@@ -27,16 +27,17 @@ const Incidents = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const normalizedStatus = status.toLowerCase().replace(/\s+/g, '-');
+    switch (normalizedStatus) {
       case "resolved":
       case "closed":
         return "bg-success/10 text-success";
       case "in-progress":
-      case "approved":
         return "bg-primary/10 text-primary";
-      case "created":
-      case "routed":
+      case "on-hold":
         return "bg-warning/10 text-warning";
+      case "new":
+        return "bg-muted text-muted-foreground";
       default:
         return "bg-muted text-muted-foreground";
     }

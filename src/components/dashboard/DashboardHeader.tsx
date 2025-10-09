@@ -21,8 +21,19 @@ export function DashboardHeader({ onNotificationClick }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  // Show initials for avatar fallback
+  const avatarInitials = user?.name
+    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase()
+    : "U";
+
+  const roleLabels = {
+    business: "Business User",
+    support: "Support Engineer",
+    admin: "Administrator",
+  };
+
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
+    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6" aria-label="Dashboard Header">
       <div className="flex items-center gap-4">
         <h1 className="text-xl font-bold text-primary">FinCompany Portal</h1>
       </div>
@@ -34,14 +45,24 @@ export function DashboardHeader({ onNotificationClick }: DashboardHeaderProps) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
+            {/* Light blue hover effect */}
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 hover:bg-blue-50 transition-colors"
+            >
+              <Avatar className="h-8 w-8" aria-label="User Avatar">
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {user?.name.charAt(0).toUpperCase() || 'U'}
+                  {avatarInitials}
                 </AvatarFallback>
               </Avatar>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">{user?.name || 'User'}</p>
+                <div className="flex items-center gap-2">
+                  {/* Explicitly set text color to black */}
+                  <p className="text-sm font-medium text-black">{user?.name || 'User'}</p>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                    {roleLabels[user?.role] || "User"}
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
               </div>
             </Button>
@@ -49,7 +70,7 @@ export function DashboardHeader({ onNotificationClick }: DashboardHeaderProps) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>

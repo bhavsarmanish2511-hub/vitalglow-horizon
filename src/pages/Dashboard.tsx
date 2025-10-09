@@ -59,10 +59,22 @@ const Dashboard = () => {
     };
   }, [tickets, incidents]);
   
-  const openTickets = tickets.filter(t => t.status !== "resolved" && t.status !== "closed" && t.status !== "completed");
-  const openIncidentsData = incidents.filter(i => i.status !== "resolved" && i.status !== "closed");
-  const closedTickets = tickets.filter(t => t.status === "resolved" || t.status === "closed" || t.status === "completed");
-  const closedIncidents = incidents.filter(i => i.status === "resolved" || i.status === "closed");
+  const openTickets = tickets.filter(t => {
+    const status = t.status.toLowerCase();
+    return status !== "resolved" && status !== "closed";
+  });
+  const openIncidentsData = incidents.filter(i => {
+    const status = i.status.toLowerCase();
+    return status !== "resolved" && status !== "closed";
+  });
+  const closedTickets = tickets.filter(t => {
+    const status = t.status.toLowerCase();
+    return status === "resolved" || status === "closed";
+  });
+  const closedIncidents = incidents.filter(i => {
+    const status = i.status.toLowerCase();
+    return status === "resolved" || status === "closed";
+  });
   const pastTicketHistory = [
     ...closedTickets.map(t => ({ ...t, type: "Service Request" as const })),
     ...closedIncidents.map(i => ({ ...i, type: "Incident" as const }))
@@ -124,9 +136,9 @@ const Dashboard = () => {
             <FileText className="h-5 w-5 text-primary" />
             Open Service Requests ({openTickets.length})
           </CardTitle>
-          <CardDescription>
+          {/* <CardDescription>
             Service requests created via AI Assistant
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
         <CardContent>
           {openTickets.length === 0 ? (
@@ -184,9 +196,9 @@ const Dashboard = () => {
             <AlertCircle className="h-5 w-5 text-warning" />
             Open Incidents ({openIncidentsData.length})
           </CardTitle>
-          <CardDescription>
+          {/* <CardDescription>
             Incidents linked to your service requests (synced with IT Support Engineer)
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
         <CardContent>
           {openIncidentsData.length === 0 ? (

@@ -31,12 +31,13 @@ const Tickets = () => {
   }, [toast]);
 
   const getStatusConfig = (status: string) => {
-    switch (status) {
-      case "open":
+    const normalizedStatus = status.toLowerCase().replace(/\s+/g, '-');
+    switch (normalizedStatus) {
+      case "new":
+      case "approved":
         return { icon: Clock, color: "text-warning", bg: "bg-warning/10" };
       case "in-progress":
         return { icon: AlertCircle, color: "text-primary", bg: "bg-primary/10" };
-      case "resolved":
       case "closed":
         return { icon: CheckCircle2, color: "text-success", bg: "bg-success/10" };
       default:

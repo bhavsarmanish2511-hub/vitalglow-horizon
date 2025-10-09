@@ -25,9 +25,108 @@ import {
   CheckCheck,
   Lightbulb
 } from "lucide-react";
-import { Ticket } from "@/data/mockTickets";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Ticket as TicketContextType, useTickets } from "@/contexts/TicketsContext";
+
+// Finance Approval Button Component
+function FinanceApprovalButton({ localTicket, setLocalTicket, toast }: any) {
+  const [isApproving, setIsApproving] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState<'pending' | 'approved'>('pending');
+
+  const handleSendForApproval = async () => {
+    setIsApproving(true);
+    setApprovalStatus('pending');
+
+    toast({
+      title: "Sending for Manager Approval",
+      description: "Requesting approval from finance manager...",
+    });
+
+    // Simulate approval process - 5 seconds
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    setApprovalStatus('approved');
+    setIsApproving(false);
+
+    const now = new Date().toLocaleString();
+    setLocalTicket({
+      ...localTicket,
+      approvalStatus: 'approved',
+      updated: now,
+      worklog: [
+        ...(localTicket.worklog || []),
+        {
+          timestamp: now,
+          action: 'Manager approval requested',
+          author: 'Support Engineer'
+        },
+        {
+          timestamp: now,
+          action: 'Manager approval granted - Financial report access authorized',
+          author: 'Finance Manager'
+        }
+      ]
+    });
+
+    toast({
+      title: "Approval Granted",
+      description: "Finance manager has approved the request. You can now provide the resolution.",
+    });
+  };
+
+  return (
+    <Button 
+      className="flex-1" 
+      onClick={handleSendForApproval}
+      disabled={isApproving || approvalStatus === 'approved'}
+    >
+      {isApproving && approvalStatus === 'pending' && "Waiting for Approval..."}
+      {!isApproving && approvalStatus === 'pending' && "Send for Manager Approval"}
+      {approvalStatus === 'approved' && "✓ Approved"}
+    </Button>
+  );
+}
+
+// Use a local interface that extends the ticket from context
+interface Ticket extends Partial<TicketContextType> {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  assignee: string;
+  created: string;
+  updated: string;
+  category: string;
+  createdBy?: string;
+  slaTimer?: string;
+  chatHistory?: any[];
+  comments?: Array<{ author: string; content: string; timestamp: string }>;
+  resolution?: string;
+  resolvedBy?: string;
+  similarIncidents?: Array<{
+    id: string;
+    title: string;
+    resolution: string;
+  }>;
+  sops?: Array<{
+    title: string;
+    confidence: number;
+    steps: string[];
+  }>;
+  meltData?: {
+    cpuUsage: number;
+    memoryUsage: number;
+    errorRate: number;
+  };
+  recommendedFix?: string;
+  worklog?: Array<{
+    timestamp: string;
+    action: string;
+    author: string;
+  }>;
+}
 
 interface TicketDetailViewProps {
   ticket: Ticket;
@@ -41,7 +140,9 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
   const [resolutionSteps, setResolutionSteps] = useState('');
   const [resolutionSent, setResolutionSent] = useState(false);
   const [localTicket, setLocalTicket] = useState<Ticket>(ticket);
+  const [resolutionLink, setResolutionLink] = useState('');
   const { toast } = useToast();
+  const { updateTicket: updateGlobalTicket } = useTickets();
 
   const handleExecuteWorkflow = () => {
     setIsExecuting(true);
@@ -101,7 +202,90 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
     });
   };
 
-  const handleSendToUser = () => {
+  // const handleSendToUser = () => {
+  //   if (!resolutionSteps.trim()) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Please save resolution steps before sending to user.",
+  //       variant: "destructive"
+  //     });
+  //     return;
+  //   }
+
+  //   const now = new Date().toLocaleString();
+  //   const updatedWorklog = [
+  //     ...(localTicket.worklog || []),
+  //     {
+  //       timestamp: now,
+  //       action: `Resolution sent to user (${localTicket.createdBy}): Password reset link and instructions provided by SMS`,
+  //       author: 'System'
+  //     },
+  //     {
+  //       timestamp: now,
+  //       action: 'SMS delivered successfully to user with password reset instructions',
+  //       author: 'System'
+  //     }
+  //   ];
+
+  //   setLocalTicket({
+  //     ...localTicket,
+  //     worklog: updatedWorklog,
+  //     status: 'waiting-for-user',
+  //     updated: now
+  //   });
+
+  //   setResolutionSent(true);
+    
+  //   // Dispatch notification event for business user
+  //   window.dispatchEvent(new CustomEvent('support-action', {
+  //     detail: {
+  //       ticketId: localTicket.id,
+  //       action: 'Resolution Sent',
+  //       message: `Password reset instructions sent for ${localTicket.id}`
+  //     }
+  //   }));
+
+  //   toast({
+  //     title: "Resolution Sent",
+  //     description: `Password reset instructions sent to ${localTicket.createdBy}`,
+  //   });
+
+  //   // Simulate user resetting password after 3 seconds
+  //   setTimeout(() => {
+  //     const userActionTime = new Date().toLocaleString();
+  //     const finalWorklog = [
+  //       ...updatedWorklog,
+  //       {
+  //         timestamp: userActionTime,
+  //         action: 'User successfully reset password and logged in',
+  //         author: 'System'
+  //       }
+  //     ];
+
+  //     setLocalTicket(prev => ({
+  //       ...prev,
+  //       worklog: finalWorklog,
+  //       status: 'resolved',
+  //       updated: userActionTime
+  //     }));
+
+  //     // Dispatch notification for ticket resolution
+  //     window.dispatchEvent(new CustomEvent('support-action', {
+  //       detail: {
+  //         ticketId: localTicket.id,
+  //         action: 'Ticket Resolved',
+  //         message: `${localTicket.id}: ${localTicket.title} has been resolved`
+  //       }
+  //     }));
+
+  //     toast({
+  //       title: "User Action Completed",
+  //       description: "User has successfully reset their password.",
+  //     });
+  //   }, 8000);
+  // };
+
+  const handleSendToUser = async () => {
     if (!resolutionSteps.trim()) {
       toast({
         title: "Error",
@@ -110,31 +294,28 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
       });
       return;
     }
-
+  
     const now = new Date().toLocaleString();
-    const updatedWorklog = [
+  
+    // Step 1: Add the first worklog entry
+    const firstWorklog = [
       ...(localTicket.worklog || []),
       {
         timestamp: now,
-        action: `Resolution sent to user (${localTicket.createdBy}): Password reset link and instructions provided`,
-        author: 'System'
-      },
-      {
-        timestamp: now,
-        action: 'Email delivered successfully to user with password reset instructions',
+        action: `Resolution sent to user (${localTicket.createdBy}): Password reset link and instructions provided over SMS`,
         author: 'System'
       }
     ];
-
+  
     setLocalTicket({
       ...localTicket,
-      worklog: updatedWorklog,
+      worklog: firstWorklog,
       status: 'waiting-for-user',
       updated: now
     });
-
+  
     setResolutionSent(true);
-    
+  
     // Dispatch notification event for business user
     window.dispatchEvent(new CustomEvent('support-action', {
       detail: {
@@ -143,31 +324,50 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
         message: `Password reset instructions sent for ${localTicket.id}`
       }
     }));
-
+  
     toast({
       title: "Resolution Sent",
       description: `Password reset instructions sent to ${localTicket.createdBy}`,
     });
-
-    // Simulate user resetting password after 3 seconds
+  
+    // Step 2: Wait 4 seconds before adding the "Email delivered" entry
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    const emailDeliveredTime = new Date().toLocaleString();
+  
+    const secondWorklog = [
+      ...firstWorklog,
+      {
+        timestamp: emailDeliveredTime,
+        action: 'Msg delivered successfully to user with password reset instructions',
+        author: 'System'
+      }
+    ];
+  
+    setLocalTicket(prev => ({
+      ...prev,
+      worklog: secondWorklog,
+      updated: emailDeliveredTime
+    }));
+  
+    // Step 3: Simulate user resetting password after 8 seconds from now
     setTimeout(() => {
       const userActionTime = new Date().toLocaleString();
       const finalWorklog = [
-        ...updatedWorklog,
+        ...secondWorklog,
         {
           timestamp: userActionTime,
           action: 'User successfully reset password and logged in',
           author: 'System'
         }
       ];
-
+  
       setLocalTicket(prev => ({
         ...prev,
         worklog: finalWorklog,
         status: 'resolved',
         updated: userActionTime
       }));
-
+  
       // Dispatch notification for ticket resolution
       window.dispatchEvent(new CustomEvent('support-action', {
         detail: {
@@ -176,12 +376,124 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
           message: `${localTicket.id}: ${localTicket.title} has been resolved`
         }
       }));
-
+  
       toast({
         title: "User Action Completed",
         description: "User has successfully reset their password.",
       });
-    }, 3000);
+    }, 8000); // 8 seconds after the "Email delivered" entry
+  };
+
+  // const handleResolveTicket = () => {
+  //   if (!resolutionLink.trim()) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Please provide a resolution link before resolving.",
+  //       variant: "destructive"
+  //     });
+  //     return;
+  //   }
+
+  //   const now = new Date().toLocaleString();
+  //   const updatedTicket = {
+  //     ...localTicket,
+  //     status: "resolved" as const,
+  //     resolution: resolutionLink,
+  //     resolvedBy: "martha@intelletica.com",
+  //     updated: now,
+  //     comments: [
+  //       ...(localTicket.comments || []),
+  //       { 
+  //         author: "Support Engineer", 
+  //         content: `Resolution provided: ${resolutionLink}`,
+  //         timestamp: now 
+  //       }
+  //     ]
+  //   };
+
+  //   setLocalTicket(updatedTicket);
+  //   updateGlobalTicket(localTicket.id, updatedTicket);
+
+  //   // Dispatch notification event for business user
+  //   window.dispatchEvent(new CustomEvent('ticket-resolved', {
+  //     detail: {
+  //       ticketId: localTicket.id,
+  //       ticket: updatedTicket,
+  //       action: 'Ticket Resolved',
+  //       message: `${localTicket.id} has been resolved. Resolution link provided.`
+  //     }
+  //   }));
+
+  //   toast({
+  //     title: "Ticket Resolved",
+  //     description: "Resolution has been sent to the user. They can now close the ticket.",
+  //   });
+
+  //   setTimeout(() => {
+  //     onClose();
+  //   }, 1500);
+  // };
+
+  const handleResolveTicket = () => {
+    if (!resolutionLink.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a resolution link before resolving.",
+        variant: "destructive"
+      });
+      return;
+    }
+  
+    const now = new Date().toLocaleString();
+  
+    // Add a worklog entry for resolution
+    const updatedWorklog = [
+      ...(localTicket.worklog || []),
+      {
+        timestamp: now,
+        action: `Ticket resolved. Resolution link provided: ${resolutionLink}`,
+        author: "Support Engineer"
+      }
+    ];
+  
+    const updatedTicket = {
+      ...localTicket,
+      status: "resolved" as const,
+      resolution: resolutionLink,
+      resolvedBy: "martha@intelletica.com",
+      updated: now,
+      worklog: updatedWorklog,
+      comments: [
+        ...(localTicket.comments || []),
+        { 
+          author: "Support Engineer", 
+          content: `Resolution provided: ${resolutionLink}`,
+          timestamp: now 
+        }
+      ]
+    };
+  
+    setLocalTicket(updatedTicket);
+    updateGlobalTicket(localTicket.id, updatedTicket);
+  
+    // Dispatch notification event for business user
+    window.dispatchEvent(new CustomEvent('ticket-resolved', {
+      detail: {
+        ticketId: localTicket.id,
+        ticket: updatedTicket,
+        action: 'Ticket Resolved',
+        message: `${localTicket.id} has been resolved. Resolution link provided.`
+      }
+    }));
+  
+    toast({
+      title: "Ticket Resolved",
+      description: "Resolution has been sent to the user. They can now close the ticket.",
+    });
+  
+    setTimeout(() => {
+      onClose();
+    }, 1500);
   };
 
   const handleCloseTicket = () => {
@@ -281,25 +593,48 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Edit className="h-4 w-4 text-primary" />
-                    Add Resolution Steps
+                    {localTicket.category === "Finance" ? "Provide Resolution Link" : "Add Resolution Steps"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div>
-                    <Label htmlFor="resolution">Resolution Steps for User</Label>
-                    <Textarea
-                      id="resolution"
-                      placeholder="Enter step-by-step instructions for the user to reset their password..."
-                      value={resolutionSteps}
-                      onChange={(e) => setResolutionSteps(e.target.value)}
-                      className="min-h-[120px] mt-2"
-                    />
-                  </div>
+                  {localTicket.category === "Finance" ? (
+                    <div>
+                      <Label htmlFor="resolutionLink">Resolution Link (SharePoint/Download URL)</Label>
+                      <Textarea
+                        id="resolutionLink"
+                        placeholder="Enter the SharePoint or download link for the financial report..."
+                        value={resolutionLink}
+                        onChange={(e) => setResolutionLink(e.target.value)}
+                        className="min-h-[80px] mt-2"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Provide the secure link to the requested financial report document.
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="resolution">Resolution Steps for User</Label>
+                      <Textarea
+                        id="resolution"
+                        placeholder="Enter step-by-step instructions for the user to reset their password..."
+                        value={resolutionSteps}
+                        onChange={(e) => setResolutionSteps(e.target.value)}
+                        className="min-h-[120px] mt-2"
+                      />
+                    </div>
+                  )}
                   <div className="flex gap-2">
-                    <Button onClick={handleSaveResolution} className="flex-1">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Save Resolution
-                    </Button>
+                    {localTicket.category === "Finance" ? (
+                      <Button onClick={handleResolveTicket} className="flex-1">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Resolve Ticket
+                      </Button>
+                    ) : (
+                      <Button onClick={handleSaveResolution} className="flex-1">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Save Resolution
+                      </Button>
+                    )}
                     <Button variant="outline" onClick={() => setIsEditing(false)}>
                       Cancel
                     </Button>
@@ -422,29 +757,89 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
               </Card>
             )}
 
-            {/* Recommended Fix */}
-            {/* {localTicket.recommendedFix && (
-              <Card className="bg-success/5 border-success/20">
+            {/* Similar Incidents - Finance Category */}
+            {localTicket.category === "Finance" && (
+              <Card className="bg-muted/50">
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-success" />
-                    Recommended Fix from ServiceNow
+                    <FileText className="h-4 w-4" />
+                    Similar Incidents
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm mb-4">{localTicket.recommendedFix}</p>
-                  <Button 
-                    onClick={handleExecuteWorkflow}
-                    disabled={isExecuting}
-                    className="w-full"
-                  >
-                    {isExecuting ? "Updating Worklog..." : "Update Worklog"}
-                  </Button>
+                <CardContent className="space-y-3">
+                  <div className="p-3 bg-card rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-xs">SR12340</Badge>
+                      <p className="font-medium text-sm">Quarterly Sales Report Access</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Resolution:</strong> Report provided via SharePoint link
+                    </p>
+                  </div>
+                  <div className="p-3 bg-card rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-xs">INC56786</Badge>
+                      <p className="font-medium text-sm">Sensitive Financial Data Access</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Resolution:</strong> Secure download link provided after approval
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
-            )} */}
+            )}
 
-            {/* Recommended Fix from ServiceNow */}
+            {/* Standard Operating Procedures - Finance Category */}
+            {localTicket.category === "Finance" && (
+              <Card className="bg-muted/50">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Standard Operating Procedures (SOPs)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-card rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="font-medium">Financial Report Request Process</p>
+                      <div className="flex items-center gap-2">
+                        <Progress value={95} className="w-20 h-2" />
+                        <span className="text-sm text-muted-foreground">95%</span>
+                      </div>
+                    </div>
+                    <ol className="space-y-2 text-sm">
+                      <li className="flex gap-2">
+                        <span className="text-muted-foreground">1.</span>
+                        <span>Verify user authorization and access level</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-muted-foreground">2.</span>
+                        <span>Validate report type and time period requested</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-muted-foreground">3.</span>
+                        <span>Check if manager approval is required (reports &gt; $100K)</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-muted-foreground">4.</span>
+                        <span>Generate report from financial database</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-muted-foreground">5.</span>
+                        <span>Upload to secure SharePoint location</span>
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-muted-foreground">6.</span>
+                        <span>Provide secure download link to requestor</span>
+                      </li>
+                    </ol>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recommended Fix from ServiceNow - Finance Category */}
+            {localTicket.category === "Finance" && (
               <Card className="bg-primary/5 border-primary/20">
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
@@ -456,16 +851,19 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
                   <div className="space-y-2 text-sm">
                     <p className="font-medium">Automated Resolution Steps:</p>
                     <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                      <li>Verify user identity via registered email or phone number</li>
-                      <li>Send password reset link to verified contact</li>
-                      <li>Unlock account in Active Directory upon successful password reset</li>
-                      <li>Notify user of account unlock and provide security tips</li>
-                      <li>Log all actions in audit trail for compliance</li>
+                      <li>Verify user access permissions in Finance system</li>
+                      <li>Extract requested financial data from database</li>
+                      <li>Generate PDF/Excel report with appropriate formatting</li>
+                      <li>Upload report to SharePoint secure folder</li>
+                      <li>Generate time-limited download link (valid for 48 hours)</li>
+                      <li>Send link to user via secure email</li>
+                      <li>Log access request in compliance audit trail</li>
                     </ol>
-                    <Badge className="mt-2 bg-success/10 text-success">Confidence: 97%</Badge>
+                    <Badge className="mt-2 bg-success/10 text-success">Confidence: 92%</Badge>
                   </div>
                 </CardContent>
               </Card>
+            )}
 
             {/* Worklog */}
             {localTicket.worklog && localTicket.worklog.length > 0 && (
@@ -504,16 +902,23 @@ export function TicketDetailView({ ticket, open, onClose }: TicketDetailViewProp
         </ScrollArea>
 
         <div className="flex gap-3 px-6 py-4 border-t mt-0 bg-background">
-          {!isEditing && !resolutionSteps && (
+          {localTicket.category === "Finance" && !isEditing && !resolutionLink && localTicket.status !== 'resolved' && !localTicket.approvalStatus && (
+            <FinanceApprovalButton 
+              localTicket={localTicket}
+              setLocalTicket={setLocalTicket}
+              toast={toast}
+            />
+          )}
+          {!isEditing && !resolutionSteps && !resolutionLink && localTicket.status !== 'resolved' && (localTicket.category !== "Finance" || localTicket.approvalStatus === 'approved') && (
             <Button variant="outline" className="flex-1" onClick={handleAddUpdate}>
               <Edit className="h-4 w-4 mr-2" />
-              Add Update
+              {localTicket.category === "Finance" ? "Provide Resolution" : "Add Update"}
             </Button>
           )}
-          {localTicket.status === 'resolved' && (
+          {localTicket.status === 'resolved' && localTicket.category !== "Finance" && (
             <Button className="flex-1" onClick={handleCloseTicket}>
               <CheckCheck className="h-4 w-4 mr-2" />
-              Close Ticket
+              Resolve
             </Button>
           )}
           <Button variant="outline" onClick={onClose}>

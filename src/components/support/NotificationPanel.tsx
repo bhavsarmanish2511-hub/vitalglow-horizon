@@ -40,6 +40,9 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
     const notifiedIncidents = JSON.parse(localStorage.getItem(notifiedIncidentsKey) || '[]');
     
     incidents.forEach(incident => {
+      // Skip AI-only incidents (like Password Unlock)
+      if (incident.isAIOnly) return;
+      
       if (!notifiedIncidents.includes(incident.id)) {
         const notificationId = `incident-${incident.id}-${Date.now()}`;
         
@@ -71,41 +74,45 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
     localStorage.setItem(storageKey, JSON.stringify(notifications));
   }, [notifications, storageKey]);
 
-  // Listen for new incidents (for support engineer ONLY)
+  // Listen for new tickets/incidents (for support engineer ONLY)
   useEffect(() => {
     if (userRole !== 'support') return;
 
-    const handleNewIncident = (event: CustomEvent) => {
-      const { incident } = event.detail;
-      const notificationId = `incident-${incident.id}-${Date.now()}`;
-      const notifiedIncidents = JSON.parse(localStorage.getItem(notifiedIncidentsKey) || '[]');
+  const handleNewTicket = (event: CustomEvent) => {
+    const { ticket, type } = event.detail;
+    
+    // Skip AI-only incidents (like Password Unlock)
+    if (ticket.isAIOnly) return;
+    
+    const notificationId = `${type}-${ticket.id}-${Date.now()}`;
+    const notifiedIncidents = JSON.parse(localStorage.getItem(notifiedIncidentsKey) || '[]');
+    
+    setNotifications(prev => {
+      const priorityText = ticket.priority ? ` | Priority: ${ticket.priority.toUpperCase()}` : '';
+      const categoryText = ticket.category ? ` | Category: ${ticket.category}` : '';
       
-      setNotifications(prev => {
-        const exists = prev.some(n => n.ticketId === incident.id && n.type === 'assignment');
-        if (exists) return prev;
-        
-        const newNotification: Notification = {
-          id: notificationId,
-          title: 'New Incident Assigned',
-          message: `${incident.id}: ${incident.title} has been assigned to you`,
-          timestamp: new Date().toLocaleString(),
-          read: false,
-          type: 'assignment',
-          ticketId: incident.id
-        };
-        
-        if (!notifiedIncidents.includes(incident.id)) {
-          notifiedIncidents.push(incident.id);
-          localStorage.setItem(notifiedIncidentsKey, JSON.stringify(notifiedIncidents));
-        }
-        
-        return [newNotification, ...prev];
-      });
-    };
+      const newNotification: Notification = {
+        id: notificationId,
+        title: type === 'incident' ? 'New Incident Assigned' : 'New Service Request Assigned',
+        message: `${ticket.id}: ${ticket.title}${priorityText}${categoryText} - Assigned by: ${ticket.createdBy || 'Business User'}`,
+        timestamp: new Date().toLocaleString(),
+        read: false,
+        type: 'assignment',
+        ticketId: ticket.id
+      };
+      
+      if (!notifiedIncidents.includes(ticket.id)) {
+        notifiedIncidents.push(ticket.id);
+        localStorage.setItem(notifiedIncidentsKey, JSON.stringify(notifiedIncidents));
+      }
+      
+      return [newNotification, ...prev];
+    });
+  };
 
-    window.addEventListener('new-incident' as any, handleNewIncident);
+    window.addEventListener('support-ticket-created' as any, handleNewTicket);
     return () => {
-      window.removeEventListener('new-incident' as any, handleNewIncident);
+      window.removeEventListener('support-ticket-created' as any, handleNewTicket);
     };
   }, [userRole, notifiedIncidentsKey]);
 
@@ -255,8 +262,11 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
       notifications.map((notification) => (
         <DropdownMenuItem
           key={notification.id}
-          className="flex flex-col items-start gap-1 p-4 cursor-pointer transition-colors group
-            hover:bg-blue-50 focus:bg-blue-50 active:bg-blue-100"
+          className={`flex flex-col items-start gap-1 p-4 cursor-pointer transition-colors group
+            ${!notification.read 
+              ? 'bg-destructive/5 hover:bg-destructive/10 focus:bg-destructive/10' 
+              : 'bg-muted/30 hover:bg-muted/50 focus:bg-muted/50'
+            }`}
           onClick={() => handleNotificationClick(notification)}
         >
           <div className="flex items-start justify-between w-full gap-2">
@@ -264,19 +274,19 @@ export function NotificationPanel({ onNotificationClick }: NotificationPanelProp
               <div className="flex items-center gap-2">
                 <p
                   className={`font-medium text-sm transition-colors
-                    ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}
-                    group-hover:text-black`}
+                    ${!notification.read ? 'text-foreground font-semibold' : 'text-muted-foreground'}
+                    group-hover:text-foreground`}
                 >
                   {notification.title}
                 </p>
                 {!notification.read && (
-                  <div className="h-2 w-2 rounded-full bg-primary" />
+                  <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1 transition-colors group-hover:text-black">
+              <p className={`text-xs mt-1 transition-colors ${!notification.read ? 'text-foreground' : 'text-muted-foreground'} group-hover:text-foreground`}>
                 {notification.message}
               </p>
-              <p className="text-xs text-muted-foreground mt-2 transition-colors group-hover:text-black">
+              <p className="text-xs text-muted-foreground mt-2 transition-colors group-hover:text-foreground">
                 {notification.timestamp}
               </p>
             </div>

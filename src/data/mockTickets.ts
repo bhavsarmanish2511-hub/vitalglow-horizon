@@ -34,17 +34,49 @@ export interface Ticket {
   }>;
 }
 
+// Generate dates for different time periods
+const now = new Date();
+const getDateString = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
+
+// This week (7 tickets)
+const thisWeek = Array.from({ length: 7 }, (_, i) => {
+  const date = new Date(now);
+  date.setDate(date.getDate() - i);
+  return date;
+});
+
+// This month (15 tickets)
+const thisMonth = Array.from({ length: 15 }, (_, i) => {
+  const date = new Date(now);
+  date.setDate(date.getDate() - (i * 2));
+  return date;
+});
+
+// This year (20 tickets)
+const thisYear = Array.from({ length: 20 }, (_, i) => {
+  const date = new Date(now);
+  date.setMonth(date.getMonth() - i);
+  return date;
+});
+
 export const mockTickets: Ticket[] = [
   {
     id: 'INC325678',
-    title: 'Account Locked - Multiple Incorrect Login Attempts',
+    title: 'Account Locked - Unable to login to a Application',
     description: 'User account has been locked after 3 consecutive failed login attempts. User requires password reset to regain access to their account.',
     status: 'in-progress',
     priority: 'high',
     assignee: 'martha@intelletica.com',
     createdBy: 'sarah.johnson@company.com',
-    created: '2024-01-15 16:20',
-    updated: '2024-01-15 16:25',
+    created: getDateString(thisWeek[0]),
+    updated: getDateString(thisWeek[0]),
     category: 'Security',
     type: 'incident',
     slaTimer: '3h 40m remaining',
@@ -98,22 +130,22 @@ export const mockTickets: Ticket[] = [
     recommendedFix: 'Execute Account Lockout Resolution Protocol. Generate and send password reset link to user\'s verified email address. Estimated resolution time: 15 minutes. System will auto-update worklog upon successful password reset.',
     worklog: [
       {
-        timestamp: '2024-01-15 16:20',
-        action: 'Incident created - Account locked after 5 failed login attempts',
+        timestamp: getDateString(thisWeek[0]),
+        action: 'Incident created - Account locked after 3 failed login attempts',
         author: 'System'
       },
       {
-        timestamp: '2024-01-15 16:22',
+        timestamp: getDateString(thisWeek[0]),
         action: 'Assigned to Support Engineer for resolution',
         author: 'System'
       },
       {
-        timestamp: '2024-01-15 16:23',
+        timestamp: getDateString(thisWeek[0]),
         action: 'Identity verification initiated via phone',
         author: 'AI Assistant'
       },
       {
-        timestamp: '2024-01-15 16:25',
+        timestamp: getDateString(thisWeek[0]),
         action: 'SOP matched with 97% confidence - Ready to execute password reset',
         author: 'AI Assistant'
       }
@@ -127,8 +159,8 @@ export const mockTickets: Ticket[] = [
     priority: 'critical',
     assignee: 'martha@intelletica.com',
     createdBy: 'james@fincompany.com',
-    created: '2024-01-15 09:31',
-    updated: '2024-01-15 15:45',
+    created: getDateString(thisWeek[1]),
+    updated: getDateString(thisWeek[1]),
     category: 'Security',
     type: 'incident',
     slaTimer: '2h 15m remaining',
@@ -175,17 +207,17 @@ export const mockTickets: Ticket[] = [
     recommendedFix: 'Execute Payroll Access Standard Procedure with enhanced logging. Estimated resolution time: 30 minutes.',
     worklog: [
       {
-        timestamp: '2024-01-15 09:31',
+        timestamp: getDateString(thisWeek[1]),
         action: 'Incident created by AI Assistant',
         author: 'System'
       },
       {
-        timestamp: '2024-01-15 09:35',
+        timestamp: getDateString(thisWeek[1]),
         action: 'Assigned to Support Engineer',
         author: 'System'
       },
       {
-        timestamp: '2024-01-15 10:00',
+        timestamp: getDateString(thisWeek[1]),
         action: 'SOP identified and recommended',
         author: 'AI Assistant'
       }
@@ -199,8 +231,8 @@ export const mockTickets: Ticket[] = [
     priority: 'high',
     assignee: 'martha@intelletica.com',
     createdBy: 'user@company.com',
-    created: '2024-01-15 14:20',
-    updated: '2024-01-15 14:20',
+    created: getDateString(thisWeek[2]),
+    updated: getDateString(thisWeek[2]),
     category: 'Network',
     type: 'incident'
   },
@@ -212,8 +244,8 @@ export const mockTickets: Ticket[] = [
     priority: 'medium',
     assignee: 'martha@intelletica.com',
     createdBy: 'jane@company.com',
-    created: '2024-01-15 11:00',
-    updated: '2024-01-15 13:45',
+    created: getDateString(thisWeek[3]),
+    updated: getDateString(thisWeek[3]),
     category: 'Email',
     type: 'incident'
   },
@@ -225,8 +257,8 @@ export const mockTickets: Ticket[] = [
     priority: 'critical',
     assignee: 'martha@intelletica.com',
     createdBy: 'monitor@system.com',
-    created: '2024-01-15 08:15',
-    updated: '2024-01-15 15:30',
+    created: getDateString(thisWeek[4]),
+    updated: getDateString(thisWeek[4]),
     category: 'Database',
     type: 'incident'
   },
@@ -238,9 +270,193 @@ export const mockTickets: Ticket[] = [
     priority: 'high',
     assignee: 'martha@intelletica.com',
     createdBy: 'monitor@system.com',
-    created: '2024-01-14 09:00',
-    updated: '2024-01-15 10:30',
+    created: getDateString(thisWeek[5]),
+    updated: getDateString(thisWeek[5]),
     category: 'Infrastructure',
+    type: 'incident'
+  },
+  {
+    id: 'INC106789',
+    title: 'Software License Expired',
+    description: 'Team reporting inability to access licensed software',
+    status: 'new',
+    priority: 'medium',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'team.lead@company.com',
+    created: getDateString(thisWeek[6]),
+    updated: getDateString(thisWeek[6]),
+    category: 'Licensing',
+    type: 'incident'
+  },
+  // This month additional tickets
+  {
+    id: 'INC107234',
+    title: 'Printer Configuration Issue',
+    description: 'Network printer not responding to print commands',
+    status: 'in-progress',
+    priority: 'low',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'office@company.com',
+    created: getDateString(thisMonth[7]),
+    updated: getDateString(thisMonth[7]),
+    category: 'Hardware',
+    type: 'incident'
+  },
+  {
+    id: 'SR108567',
+    title: 'New Software Installation Request',
+    description: 'Request to install Adobe Creative Suite for design team',
+    status: 'new',
+    priority: 'medium',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'design@company.com',
+    created: getDateString(thisMonth[8]),
+    updated: getDateString(thisMonth[8]),
+    category: 'Software',
+    type: 'service-request'
+  },
+  {
+    id: 'INC109876',
+    title: 'Cloud Storage Sync Failure',
+    description: 'OneDrive not syncing files to cloud',
+    status: 'resolved',
+    priority: 'medium',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'sales@company.com',
+    created: getDateString(thisMonth[9]),
+    updated: getDateString(thisMonth[9]),
+    category: 'Cloud Services',
+    type: 'incident'
+  },
+  {
+    id: 'SR110234',
+    title: 'Access Request - HR Portal',
+    description: 'New employee needs access to HR system',
+    status: 'in-progress',
+    priority: 'high',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'hr@company.com',
+    created: getDateString(thisMonth[10]),
+    updated: getDateString(thisMonth[10]),
+    category: 'Access Management',
+    type: 'service-request'
+  },
+  {
+    id: 'INC111567',
+    title: 'Website Loading Slowly',
+    description: 'Company website experiencing high load times',
+    status: 'escalated',
+    priority: 'critical',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'webmaster@company.com',
+    created: getDateString(thisMonth[11]),
+    updated: getDateString(thisMonth[11]),
+    category: 'Web Services',
+    type: 'incident'
+  },
+  {
+    id: 'INC112890',
+    title: 'Mobile App Crash on iOS',
+    description: 'Company mobile app crashes on startup for iOS users',
+    status: 'new',
+    priority: 'high',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'mobile.user@company.com',
+    created: getDateString(thisMonth[12]),
+    updated: getDateString(thisMonth[12]),
+    category: 'Mobile',
+    type: 'incident'
+  },
+  {
+    id: 'SR113456',
+    title: 'Equipment Request - Monitor',
+    description: 'Request for additional 27-inch monitor for workstation',
+    status: 'waiting-for-user',
+    priority: 'low',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'developer@company.com',
+    created: getDateString(thisMonth[13]),
+    updated: getDateString(thisMonth[13]),
+    category: 'Hardware',
+    type: 'service-request'
+  },
+  {
+    id: 'INC114789',
+    title: 'Security Certificate Expiration Warning',
+    description: 'SSL certificate for internal portal expiring in 7 days',
+    status: 'in-progress',
+    priority: 'high',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'system@company.com',
+    created: getDateString(thisMonth[14]),
+    updated: getDateString(thisMonth[14]),
+    category: 'Security',
+    type: 'incident'
+  },
+  // This year additional tickets
+  {
+    id: 'SR115234',
+    title: 'Office Relocation - IT Setup',
+    description: 'Setup workstations and network for new office location',
+    status: 'new',
+    priority: 'medium',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'facilities@company.com',
+    created: getDateString(thisYear[15]),
+    updated: getDateString(thisYear[15]),
+    category: 'Infrastructure',
+    type: 'service-request'
+  },
+  {
+    id: 'INC116567',
+    title: 'Backup System Failure',
+    description: 'Automated backup process failed for critical databases',
+    status: 'escalated',
+    priority: 'critical',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'system@company.com',
+    created: getDateString(thisYear[16]),
+    updated: getDateString(thisYear[16]),
+    category: 'Database',
+    type: 'incident'
+  },
+  {
+    id: 'INC117890',
+    title: 'Conference Room AV System Not Working',
+    description: 'Display and audio system in conference room A not functioning',
+    status: 'resolved',
+    priority: 'medium',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'office@company.com',
+    created: getDateString(thisYear[17]),
+    updated: getDateString(thisYear[17]),
+    category: 'Hardware',
+    type: 'incident'
+  },
+  {
+    id: 'SR118456',
+    title: 'Training Request - Security Awareness',
+    description: 'Schedule security awareness training for all employees',
+    status: 'in-progress',
+    priority: 'medium',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'security@company.com',
+    created: getDateString(thisYear[18]),
+    updated: getDateString(thisYear[18]),
+    category: 'Training',
+    type: 'service-request'
+  },
+  {
+    id: 'INC119789',
+    title: 'Data Migration Issue',
+    description: 'Legacy system data not migrating correctly to new platform',
+    status: 'new',
+    priority: 'high',
+    assignee: 'martha@intelletica.com',
+    createdBy: 'data.admin@company.com',
+    created: getDateString(thisYear[19]),
+    updated: getDateString(thisYear[19]),
+    category: 'Database',
     type: 'incident'
   }
 ];

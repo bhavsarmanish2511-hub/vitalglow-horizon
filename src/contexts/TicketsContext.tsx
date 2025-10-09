@@ -18,6 +18,7 @@ export interface Ticket {
   status: string;
   priority: string;
   assignee: string;
+  createdBy?: string; // Who created the ticket
   created: string;
   updated: string;
   category: string;
@@ -78,7 +79,7 @@ const mockClosedTickets: Ticket[] = [
     id: "SR12340",
     title: "Quarterly Sales Report Access",
     description: "Request for Q3 2024 sales data and analytics",
-    status: "resolved",
+    status: "Closed",
     priority: "medium",
     assignee: "Data Analytics Team",
     created: "2024-01-10 08:00",
@@ -98,7 +99,7 @@ const mockClosedTickets: Ticket[] = [
     id: "SR12338",
     title: "VPN Access Request",
     description: "Request for remote VPN access credentials",
-    status: "completed",
+    status: "Closed",
     priority: "high",
     assignee: "IT Security Team",
     created: "2024-01-08 09:15",
@@ -117,7 +118,7 @@ const mockClosedTickets: Ticket[] = [
     id: "SR12335",
     title: "Monthly Expense Reconciliation",
     description: "Reconciliation of December 2024 expense reports",
-    status: "resolved",
+    status: "Closed",
     priority: "medium",
     assignee: "Finance Team",
     created: "2024-01-05 10:30",
@@ -139,7 +140,7 @@ const mockClosedIncidents: Incident[] = [
     id: "INC56786",
     title: "Sensitive Financial Data Access",
     description: "Incident for accessing confidential Q3 financial statements",
-    status: "resolved",
+    status: "Closed",
     priority: "critical",
     assignee: "andrews@intelletica.com",
     createdBy: "james@fincompany.com",
@@ -165,7 +166,7 @@ const mockClosedIncidents: Incident[] = [
     id: "INC56785",
     title: "Employee SSN Data Request",
     description: "Incident for accessing employee Social Security Numbers for tax filing",
-    status: "closed",
+    status: "Closed",
     priority: "critical",
     assignee: "hr@intelletica.com",
     createdBy: "james@fincompany.com",
@@ -197,6 +198,10 @@ export const TicketsProvider: React.FC<{ children: ReactNode }> = ({ children })
     window.dispatchEvent(new CustomEvent('ticket-created', { 
       detail: { ticket, type: 'ticket' } 
     }));
+    // Also dispatch for support engineer notifications
+    window.dispatchEvent(new CustomEvent('support-ticket-created', { 
+      detail: { ticket, type: 'ticket' } 
+    }));
   };
 
   const addIncident = (incident: Incident) => {
@@ -205,9 +210,12 @@ export const TicketsProvider: React.FC<{ children: ReactNode }> = ({ children })
     window.dispatchEvent(new CustomEvent('ticket-created', { 
       detail: { ticket: incident, type: 'incident' } 
     }));
-    window.dispatchEvent(new CustomEvent('new-incident', { 
-      detail: { incident } 
-    }));
+    // Only dispatch for support if not AI-only
+    if (!incident.isAIOnly) {
+      window.dispatchEvent(new CustomEvent('support-ticket-created', { 
+        detail: { ticket: incident, type: 'incident' } 
+      }));
+    }
   };
 
   const updateTicket = (id: string, updates: Partial<Ticket>) => {

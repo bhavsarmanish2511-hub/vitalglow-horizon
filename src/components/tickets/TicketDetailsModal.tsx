@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,11 +18,13 @@ import {
   CheckCircle,
   AlertCircle,
   Paperclip,
+  XCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useTickets } from "@/contexts/TicketsContext";
 
 interface TicketData {
   id: string;
@@ -65,22 +67,59 @@ interface TicketDetailsModalProps {
 
 export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModalProps) {
   const { toast } = useToast();
+  const { updateTicket } = useTickets();
   const [showReportModal, setShowReportModal] = useState(false);
+  const [localTicket, setLocalTicket] = useState<TicketData>(ticket);
 
-  const statusColor = ticket.status === "resolved"
+  useEffect(() => {
+    setLocalTicket(ticket);
+  }, [ticket]);
+
+  const statusColor = localTicket.status === "resolved"
     ? "bg-green-100 text-green-700"
+    : localTicket.status === "closed"
+    ? "bg-gray-100 text-gray-700"
     : "bg-blue-100 text-blue-700";
   const priorityColor =
-    ticket.priority === "high" || ticket.priority === "critical"
+    localTicket.priority === "high" || localTicket.priority === "critical"
       ? "bg-red-100 text-red-700"
       : "bg-yellow-100 text-yellow-700";
+
+  const handleCloseTicket = () => {
+    const now = new Date().toLocaleString();
+    const updatedTicket = {
+      ...localTicket,
+      status: "closed",
+      updated: now,
+      comments: [
+        ...(localTicket.comments || []),
+        { 
+          author: "Business User", 
+          content: "Ticket closed by user after reviewing resolution.",
+          timestamp: now 
+        }
+      ]
+    };
+
+    setLocalTicket(updatedTicket);
+    updateTicket(localTicket.id, updatedTicket);
+
+    toast({
+      title: "Ticket Closed",
+      description: `${localTicket.id} has been closed successfully.`,
+    });
+
+    setTimeout(() => {
+      onClose();
+    }, 1500);
+  };
 
   // Dummy HTML report for download
   const htmlReport = `
   <html>
     <head>
       <meta charset="UTF-8" />
-      <title>SR ${ticket.id} Report</title>
+      <title>SR ${localTicket.id} Report</title>
       <style>
         body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 2rem; }
         h1 { color: #2563eb; }
@@ -465,10 +504,18 @@ export function TicketDetailsModal({ ticket, open, onClose }: TicketDetailsModal
               <FileText className="h-4 w-4" />
               View Detailed Report
             </Button>
-            <Button variant="outline" onClick={handleOpenSharePoint} className="flex items-center gap-2 border-green-200">
-              <ExternalLink className="h-4 w-4" />
-              SharePoint Link
-            </Button>
+            {localTicket.resolution && (
+              <Button variant="outline" onClick={handleOpenSharePoint} className="flex items-center gap-2 border-green-200">
+                <ExternalLink className="h-4 w-4" />
+                Open Resolution Link
+              </Button>
+            )}
+            {localTicket.status === "resolved" && localTicket.resolution && (
+              <Button onClick={handleCloseTicket} className="bg-success hover:bg-success/90">
+                <XCircle className="h-4 w-4 mr-2" />
+                Close Ticket
+              </Button>
+            )}
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
